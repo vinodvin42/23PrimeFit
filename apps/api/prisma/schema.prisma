@@ -154,6 +154,7 @@ model User {
   medicationLogs        MedicationLog[]
   bloodPressureReadings BloodPressureReading[]
   bloodSugarReadings    BloodSugarReading[]
+  allergies             Allergy[]
 }
 
 model Profile {
@@ -1455,4 +1456,26 @@ model BloodSugarReading {
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId, recordedAt])
+}
+
+enum AllergySeverity {
+  MILD
+  MODERATE
+  SEVERE
+}
+
+/// Health: personal allergy list (self-reported, not a clinical diagnosis).
+model Allergy {
+  id        String          @id @default(cuid())
+  userId    String
+  allergen  String
+  severity  AllergySeverity @default(MILD)
+  reaction  String?
+  active    Boolean         @default(true)
+  createdAt DateTime        @default(now())
+  updatedAt DateTime        @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, active])
 }

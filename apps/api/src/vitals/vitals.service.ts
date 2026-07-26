@@ -3,6 +3,7 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
+import { AllergySeverity } from '@prisma/client';
 import type { AuthUser } from '../auth/auth-user';
 import { PrismaService } from '../prisma/prisma.service';
 
@@ -106,5 +107,45 @@ export class VitalsService {
     if (!reading) throw new NotFoundException('Reading not found');
     await this.prisma.bloodSugarReading.delete({ where: { id } });
     return { id };
+  }
+
+  async listAllergies(user: AuthUser) {
+    const allergies = await this.prisma.allergy.findMany({
+      where: { userId: user.id, active: true },
+      orderBy: { createdAt: 'asc' },
+    });
+    return {
+      disclaimer:
+        'A self-reported list to share with coaches and providers — not a clinical allergy test or diagnosis.',
+      allergies,
+    };
+  }
+
+  async addAllergy(
+    user: AuthUser,
+    body: { allergen: string; severity?: AllergySeverity; reaction?: string },
+  ) {
+    if (!body.allergen?.trim()) {
+      throw new BadRequestException('allergen is required');
+    }
+    return this.prisma.allergy.create({
+      data: {
+        userId: user.id,
+        allergen: body.allergen.trim(),
+        severity: body.severity ?? AllergySeverity.MILD,
+        reaction: body.reaction,
+      },
+    });
+  }
+
+  async removeAllergy(user: AuthUser, id: string) {
+    const allergy = await this.prisma.allergy.findFirst({
+      where: { id, userId: user.id },
+    });
+    if (!allergy) throw new NotFoundException('Allergy not found');
+    return this.prisma.allergy.update({
+      where: { id },
+      data: { active: false },
+    });
   }
 }

@@ -445,6 +445,30 @@ class FitnessRepository {
     await _dio.delete('/vitals/blood-sugar/$id');
   }
 
+  Future<Map<String, dynamic>> listAllergies() async {
+    final res = await _dio.get<Map<String, dynamic>>('/vitals/allergies');
+    return res.data!;
+  }
+
+  Future<void> addAllergy({
+    required String allergen,
+    String? severity,
+    String? reaction,
+  }) async {
+    await _dio.post<Map<String, dynamic>>(
+      '/vitals/allergies',
+      data: {
+        'allergen': allergen,
+        if (severity != null) 'severity': severity,
+        if (reaction != null && reaction.isNotEmpty) 'reaction': reaction,
+      },
+    );
+  }
+
+  Future<void> removeAllergy(String id) async {
+    await _dio.delete('/vitals/allergies/$id');
+  }
+
   Future<List<RecipeItem>> listRecipes([String? q]) async {
     final res = await _dio.get<List<dynamic>>(
       '/nutrition/recipes',
@@ -851,6 +875,11 @@ final bloodPressureProvider =
 final bloodSugarProvider =
     FutureProvider.autoDispose<Map<String, dynamic>>((ref) {
   return ref.watch(fitnessRepositoryProvider).listBloodSugar();
+});
+
+final allergiesProvider =
+    FutureProvider.autoDispose<Map<String, dynamic>>((ref) {
+  return ref.watch(fitnessRepositoryProvider).listAllergies();
 });
 
 final recoveryTodayProvider = FutureProvider.autoDispose<RecoveryToday>((ref) {

@@ -9,6 +9,7 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
+import type { AllergySeverity } from '@prisma/client';
 import { CurrentUser, FirebaseAuthGuard } from '../auth/auth.decorators';
 import type { AuthUser } from '../auth/auth-user';
 import { VitalsService } from './vitals.service';
@@ -63,5 +64,24 @@ export class VitalsController {
   @Delete('blood-sugar/:id')
   removeBloodSugar(@CurrentUser() user: AuthUser, @Param('id') id: string) {
     return this.vitals.removeBloodSugar(user, id);
+  }
+
+  @Get('allergies')
+  listAllergies(@CurrentUser() user: AuthUser) {
+    return this.vitals.listAllergies(user);
+  }
+
+  @Post('allergies')
+  addAllergy(
+    @CurrentUser() user: AuthUser,
+    @Body()
+    body: { allergen: string; severity?: AllergySeverity; reaction?: string },
+  ) {
+    return this.vitals.addAllergy(user, body);
+  }
+
+  @Delete('allergies/:id')
+  removeAllergy(@CurrentUser() user: AuthUser, @Param('id') id: string) {
+    return this.vitals.removeAllergy(user, id);
   }
 }

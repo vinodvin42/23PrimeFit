@@ -78,3 +78,42 @@ describe('VitalsService blood sugar', () => {
     expect(result.readings).toEqual([]);
   });
 });
+
+describe('VitalsService allergies', () => {
+  it('rejects adding an allergy with a blank allergen', async () => {
+    const service = new VitalsService({} as never);
+
+    await expect(
+      service.addAllergy({ id: 'user-1' } as never, { allergen: '  ' }),
+    ).rejects.toBeInstanceOf(BadRequestException);
+  });
+
+  it('rejects removing an allergy that does not belong to the user', async () => {
+    const prisma = {
+      allergy: { findFirst: jest.fn().mockResolvedValue(null) },
+    };
+    const service = new VitalsService(prisma as never);
+
+    await expect(
+      service.removeAllergy({ id: 'user-1' } as never, 'allergy-1'),
+    ).rejects.toBeInstanceOf(NotFoundException);
+  });
+
+  it('soft-deletes an allergy by deactivating rather than hard-deleting', async () => {
+    const update = jest.fn().mockResolvedValue({ id: 'allergy-1' });
+    const prisma = {
+      allergy: {
+        findFirst: jest.fn().mockResolvedValue({ id: 'allergy-1' }),
+        update,
+      },
+    };
+    const service = new VitalsService(prisma as never);
+
+    await service.removeAllergy({ id: 'user-1' } as never, 'allergy-1');
+
+    expect(update).toHaveBeenCalledWith({
+      where: { id: 'allergy-1' },
+      data: { active: false },
+    });
+  });
+});
