@@ -152,6 +152,8 @@ model User {
   shoppingListItems     ShoppingListItem[]
   medications           Medication[]
   medicationLogs        MedicationLog[]
+  bloodPressureReadings BloodPressureReading[]
+  bloodSugarReadings    BloodSugarReading[]
 }
 
 model Profile {
@@ -1422,4 +1424,35 @@ model MedicationLog {
 
   @@unique([medicationId, dateKey])
   @@index([userId, dateKey])
+}
+
+/// Health: personal blood pressure log (trend tracking, not a diagnosis).
+model BloodPressureReading {
+  id         String   @id @default(cuid())
+  userId     String
+  systolic   Int
+  diastolic  Int
+  pulseBpm   Int?
+  notes      String?
+  recordedAt DateTime @default(now())
+  dateKey    String
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, recordedAt])
+}
+
+/// Health: personal blood sugar log (trend tracking, not a diagnosis).
+model BloodSugarReading {
+  id         String   @id @default(cuid())
+  userId     String
+  valueMgDl  Float
+  context    String?
+  notes      String?
+  recordedAt DateTime @default(now())
+  dateKey    String
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, recordedAt])
 }

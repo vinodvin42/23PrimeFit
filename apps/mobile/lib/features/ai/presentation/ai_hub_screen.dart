@@ -208,6 +208,12 @@ class _AiHubScreenState extends ConsumerState<AiHubScreen> {
                       subtitle: 'Reminder log, not a prescription',
                       onTap: () => context.push('/medications'),
                     ),
+                    _MiniSuggestionCard(
+                      icon: Icons.favorite_border,
+                      title: 'Vitals',
+                      subtitle: 'Blood pressure & sugar trends',
+                      onTap: () => context.push('/vitals'),
+                    ),
                   ],
                 ),
               ),

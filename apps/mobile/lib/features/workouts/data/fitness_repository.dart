@@ -399,6 +399,52 @@ class FitnessRepository {
     await _dio.delete('/medications/$id/log');
   }
 
+  Future<Map<String, dynamic>> listBloodPressure() async {
+    final res = await _dio.get<Map<String, dynamic>>('/vitals/blood-pressure');
+    return res.data!;
+  }
+
+  Future<void> logBloodPressure({
+    required int systolic,
+    required int diastolic,
+    int? pulseBpm,
+  }) async {
+    await _dio.post<Map<String, dynamic>>(
+      '/vitals/blood-pressure',
+      data: {
+        'systolic': systolic,
+        'diastolic': diastolic,
+        if (pulseBpm != null) 'pulseBpm': pulseBpm,
+      },
+    );
+  }
+
+  Future<void> removeBloodPressure(String id) async {
+    await _dio.delete('/vitals/blood-pressure/$id');
+  }
+
+  Future<Map<String, dynamic>> listBloodSugar() async {
+    final res = await _dio.get<Map<String, dynamic>>('/vitals/blood-sugar');
+    return res.data!;
+  }
+
+  Future<void> logBloodSugar({
+    required double valueMgDl,
+    String? context,
+  }) async {
+    await _dio.post<Map<String, dynamic>>(
+      '/vitals/blood-sugar',
+      data: {
+        'valueMgDl': valueMgDl,
+        if (context != null && context.isNotEmpty) 'context': context,
+      },
+    );
+  }
+
+  Future<void> removeBloodSugar(String id) async {
+    await _dio.delete('/vitals/blood-sugar/$id');
+  }
+
   Future<List<RecipeItem>> listRecipes([String? q]) async {
     final res = await _dio.get<List<dynamic>>(
       '/nutrition/recipes',
@@ -795,6 +841,16 @@ final shoppingListProvider =
 final medicationsProvider =
     FutureProvider.autoDispose<Map<String, dynamic>>((ref) {
   return ref.watch(fitnessRepositoryProvider).listMedications();
+});
+
+final bloodPressureProvider =
+    FutureProvider.autoDispose<Map<String, dynamic>>((ref) {
+  return ref.watch(fitnessRepositoryProvider).listBloodPressure();
+});
+
+final bloodSugarProvider =
+    FutureProvider.autoDispose<Map<String, dynamic>>((ref) {
+  return ref.watch(fitnessRepositoryProvider).listBloodSugar();
 });
 
 final recoveryTodayProvider = FutureProvider.autoDispose<RecoveryToday>((ref) {
