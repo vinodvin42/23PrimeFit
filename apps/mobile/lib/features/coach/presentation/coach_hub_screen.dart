@@ -253,9 +253,12 @@ class _CoachHubScreenState extends ConsumerState<CoachHubScreen> {
                 decoration: const InputDecoration(hintText: 'Topic'),
               ),
               const SizedBox(height: 8),
-              ElevatedButton(
-                onPressed: _book,
-                child: const Text('Request consult (₹999)'),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: _book,
+                  child: const Text('Request consult (₹999)'),
+                ),
               ),
               const SizedBox(height: 20),
               const Text(

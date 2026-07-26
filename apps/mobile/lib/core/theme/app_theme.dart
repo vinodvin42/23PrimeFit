@@ -197,7 +197,9 @@ class AppTheme {
           backgroundColor: AppColors.lime,
           // voidBlack on lime is 6.1:1 (AA); white on lime was only 3.0:1.
           foregroundColor: AppColors.voidBlack,
-          minimumSize: const Size.fromHeight(52),
+          // Prefer finite width — Size.fromHeight(52) is infinity-wide and
+          // crashes ElevatedButton inside Row (Fuel search, etc.).
+          minimumSize: const Size(88, 52),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(16),
           ),
@@ -208,7 +210,7 @@ class AppTheme {
         style: FilledButton.styleFrom(
           backgroundColor: AppColors.lime,
           foregroundColor: AppColors.voidBlack,
-          minimumSize: const Size.fromHeight(52),
+          minimumSize: const Size(88, 52),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(16),
           ),

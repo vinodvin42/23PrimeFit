@@ -38,7 +38,7 @@ const pageChrome: Record<
   '/crm': {
     eyebrow: 'Business suite',
     title: 'Client CRM',
-    action: { label: 'Open clients', href: '/clients', icon: 'clients' },
+    action: { label: 'Open pipeline', href: '/crm/pipeline', icon: 'clients' },
   },
   '/workspace': {
     eyebrow: 'SaaS workspace',

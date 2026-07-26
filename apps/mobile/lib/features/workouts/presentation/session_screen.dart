@@ -655,10 +655,13 @@ class _SessionScreenState extends ConsumerState<SessionScreen> {
                 : SafeArea(
                     child: Padding(
                       padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
-                      child: ElevatedButton(
-                        onPressed: _completing ? null : _complete,
-                        child: Text(
-                          _completing ? 'Saving…' : 'Mark workout complete',
+                      child: SizedBox(
+                        width: double.infinity,
+                        child: ElevatedButton(
+                          onPressed: _completing ? null : _complete,
+                          child: Text(
+                            _completing ? 'Saving…' : 'Mark workout complete',
+                          ),
                         ),
                       ),
                     ),

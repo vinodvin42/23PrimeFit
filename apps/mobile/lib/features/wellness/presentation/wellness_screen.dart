@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:primefit_mobile/core/theme/app_theme.dart';
 import 'package:primefit_mobile/features/workouts/data/fitness_repository.dart';
@@ -135,6 +136,28 @@ class WellnessScreen extends ConsumerWidget {
                 TextButton(
                   onPressed: () => enable('healthspan_insights'),
                   child: const Text('Enable Healthspan insights'),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 16),
+          _Section(
+            title: 'Health trackers',
+            child: Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                FilledButton.tonal(
+                  onPressed: () => context.push('/vitals'),
+                  child: const Text('Vitals'),
+                ),
+                FilledButton.tonal(
+                  onPressed: () => context.push('/medications'),
+                  child: const Text('Medications'),
+                ),
+                FilledButton.tonal(
+                  onPressed: () => context.push('/health-timeline'),
+                  child: const Text('Timeline'),
                 ),
               ],
             ),

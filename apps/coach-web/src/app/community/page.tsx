@@ -35,6 +35,18 @@ type LeaderboardRow = {
   isCurrentUser: boolean;
 };
 
+type StoryPhoto = { id: string; fileUrl: string } | null;
+
+type Story = {
+  id: string;
+  caption: string | null;
+  beforePhoto: StoryPhoto;
+  afterPhoto: StoryPhoto;
+  cheerCount: number;
+  createdAt: string;
+  user: { id: string; displayName: string | null };
+};
+
 const KIND_LABEL: Record<ChallengeKind, string> = {
   WORKOUT_COUNT: 'Workout count',
   STREAK_DAYS: 'Streak days',
@@ -55,6 +67,7 @@ export default function CommunityPage() {
   const [challenges, setChallenges] = useState<Challenge[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [leaderboard, setLeaderboard] = useState<LeaderboardRow[]>([]);
+  const [stories, setStories] = useState<Story[]>([]);
   const [showComposer, setShowComposer] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
@@ -102,6 +115,14 @@ export default function CommunityPage() {
         const initial = rows[0]?.id ?? null;
         setSelectedId(initial);
         if (initial) await loadLeaderboard(initial);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : String(err));
+      }
+    })();
+    (async () => {
+      try {
+        const rows = await api<Story[]>('/community/stories');
+        setStories(rows);
       } catch (err) {
         setError(err instanceof Error ? err.message : String(err));
       }
@@ -403,6 +424,50 @@ export default function CommunityPage() {
             )}
           </section>
         </div>
+
+        <section className={styles.assignmentCatalog}>
+          <header>
+            <div>
+              <h3>Transformation Gallery</h3>
+              <p>Client-shared before/after progress, newest first.</p>
+            </div>
+          </header>
+          {stories.length === 0 ? (
+            <p className={styles.hint}>
+              No transformation stories shared yet.
+            </p>
+          ) : (
+            <div className={styles.transformationGrid}>
+              {stories.map((s) => (
+                <article key={s.id} className={styles.transformationCard}>
+                  <div className={styles.transformationPhotos}>
+                    {s.beforePhoto ? (
+                      <img
+                        className={styles.transformationPhoto}
+                        src={s.beforePhoto.fileUrl}
+                        alt="Before"
+                      />
+                    ) : null}
+                    {s.afterPhoto ? (
+                      <img
+                        className={styles.transformationPhoto}
+                        src={s.afterPhoto.fileUrl}
+                        alt="After"
+                      />
+                    ) : null}
+                  </div>
+                  <div className={styles.transformationMeta}>
+                    <strong>{s.user.displayName ?? 'Member'}</strong>
+                    {s.caption ? <p>{s.caption}</p> : null}
+                    <small>
+                      {fmtDate(s.createdAt)} · {s.cheerCount} cheers
+                    </small>
+                  </div>
+                </article>
+              ))}
+            </div>
+          )}
+        </section>
       </div>
     </CoachShell>
   );
