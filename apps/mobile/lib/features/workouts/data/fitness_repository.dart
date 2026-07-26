@@ -740,6 +740,18 @@ class FitnessRepository {
     await _dio.delete('/community/friends/$userId');
   }
 
+  Future<List<Map<String, dynamic>>> listEvents() async {
+    final res = await _dio.get<List<dynamic>>('/community/events');
+    return (res.data ?? []).whereType<Map<String, dynamic>>().toList();
+  }
+
+  Future<void> rsvpEvent(String eventId, String status) async {
+    await _dio.post<Map<String, dynamic>>(
+      '/community/events/$eventId/rsvp',
+      data: {'status': status},
+    );
+  }
+
   Future<Map<String, dynamic>> aiDashboard() async {
     final res = await _dio.get<Map<String, dynamic>>('/ai/dashboard');
     return res.data!;
@@ -974,6 +986,11 @@ final tenantMembersProvider =
 final friendsProvider =
     FutureProvider.autoDispose<Map<String, dynamic>>((ref) {
   return ref.watch(fitnessRepositoryProvider).listFriends();
+});
+
+final communityEventsProvider =
+    FutureProvider.autoDispose<List<Map<String, dynamic>>>((ref) {
+  return ref.watch(fitnessRepositoryProvider).listEvents();
 });
 
 final bloodPressureProvider =

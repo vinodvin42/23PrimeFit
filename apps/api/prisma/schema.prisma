@@ -159,6 +159,7 @@ model User {
   bodyMeasurements      BodyMeasurement[]
   sentFriendRequests     FriendRequest[] @relation("FriendRequestsSent")
   receivedFriendRequests FriendRequest[] @relation("FriendRequestsReceived")
+  eventRsvps             EventRsvp[]
 }
 
 model Profile {
@@ -896,6 +897,8 @@ model Tenant {
   membershipPlans        MembershipPlan[]
   membershipEnrollments  MembershipEnrollment[]
   friendRequests         FriendRequest[]
+  communityEvents        CommunityEvent[]
+  eventRsvps             EventRsvp[]
 
   @@index([type, active])
   @@index([ownerUserId])
@@ -1617,4 +1620,46 @@ model FriendRequest {
   @@unique([tenantId, fromUserId, toUserId])
   @@index([tenantId, toUserId, status])
   @@index([tenantId, fromUserId, status])
+}
+
+enum EventRsvpStatus {
+  GOING
+  MAYBE
+  DECLINED
+}
+
+/// Community: tenant-scoped event (in-person or virtual), staff-created, client RSVP.
+model CommunityEvent {
+  id              String   @id @default(cuid())
+  tenantId        String
+  title           String
+  description     String?
+  location        String?
+  startAt         DateTime
+  endAt           DateTime?
+  createdByUserId String
+  active          Boolean  @default(true)
+  createdAt       DateTime @default(now())
+
+  tenant Tenant      @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  rsvps  EventRsvp[]
+
+  @@index([tenantId, active, startAt])
+}
+
+model EventRsvp {
+  id        String          @id @default(cuid())
+  tenantId  String
+  eventId   String
+  userId    String
+  status    EventRsvpStatus @default(GOING)
+  createdAt DateTime        @default(now())
+  updatedAt DateTime        @updatedAt
+
+  tenant Tenant         @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  event  CommunityEvent @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  user   User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([eventId, userId])
+  @@index([tenantId, userId])
 }

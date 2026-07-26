@@ -15,10 +15,12 @@ class CommunityScreen extends ConsumerStatefulWidget {
 class _CommunityScreenState extends ConsumerState<CommunityScreen> {
   List<Map<String, dynamic>> _challenges = [];
   List<Map<String, dynamic>> _achievements = [];
+  List<Map<String, dynamic>> _events = [];
   int _streakDays = 0;
   bool _loading = true;
   String? _error;
   String? _busyChallengeId;
+  String? _busyEventId;
 
   @override
   void initState() {
@@ -37,6 +39,7 @@ class _CommunityScreenState extends ConsumerState<CommunityScreen> {
         repo.listChallenges(),
         repo.listAchievements(),
         repo.communityStreak(),
+        repo.listEvents(),
       ]);
       if (!mounted) return;
       setState(() {
@@ -45,11 +48,27 @@ class _CommunityScreenState extends ConsumerState<CommunityScreen> {
         _streakDays = (results[2] as Map<String, dynamic>)['streakDays']
                 as int? ??
             0;
+        _events = results[3] as List<Map<String, dynamic>>;
       });
     } catch (e) {
       if (mounted) setState(() => _error = '$e');
     } finally {
       if (mounted) setState(() => _loading = false);
+    }
+  }
+
+  Future<void> _rsvp(String eventId, String status) async {
+    setState(() => _busyEventId = eventId);
+    try {
+      await ref.read(fitnessRepositoryProvider).rsvpEvent(eventId, status);
+      await _load();
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text('$e')));
+      }
+    } finally {
+      if (mounted) setState(() => _busyEventId = null);
     }
   }
 
@@ -286,6 +305,110 @@ class _CommunityScreenState extends ConsumerState<CommunityScreen> {
                       },
                     ),
                   ),
+                const SizedBox(height: 20),
+                const Text(
+                  'Events',
+                  style: TextStyle(
+                    color: AppColors.white,
+                    fontSize: 20,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                if (_events.isEmpty)
+                  const GlassCard(
+                    child: Text(
+                      'No upcoming events — check back soon.',
+                      style: TextStyle(color: AppColors.soft),
+                    ),
+                  )
+                else
+                  ..._events.map((e) {
+                    final id = e['id'] as String;
+                    final myRsvp = e['myRsvp'] as String?;
+                    final busy = _busyEventId == id;
+                    return Padding(
+                      padding: const EdgeInsets.only(bottom: 12),
+                      child: GlassCard(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: Text(
+                                    '${e['title']}',
+                                    style: const TextStyle(
+                                      color: AppColors.white,
+                                      fontWeight: FontWeight.w700,
+                                      fontSize: 16,
+                                    ),
+                                  ),
+                                ),
+                                Text(
+                                  '${e['attendeeCount']} going',
+                                  style: const TextStyle(
+                                    color: AppColors.mutedOnDark,
+                                    fontSize: 12,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              [
+                                '${e['startAt']}',
+                                if ((e['location'] as String?)
+                                        ?.isNotEmpty ==
+                                    true)
+                                  '${e['location']}',
+                              ].join(' · '),
+                              style: const TextStyle(
+                                color: AppColors.mutedOnDark,
+                              ),
+                            ),
+                            if ((e['description'] as String?)
+                                    ?.isNotEmpty ==
+                                true) ...[
+                              const SizedBox(height: 6),
+                              Text(
+                                '${e['description']}',
+                                style: const TextStyle(color: AppColors.soft),
+                              ),
+                            ],
+                            const SizedBox(height: 10),
+                            Row(
+                              children: [
+                                ChoiceChip(
+                                  label: const Text('Going'),
+                                  selected: myRsvp == 'GOING',
+                                  onSelected: busy
+                                      ? null
+                                      : (_) => _rsvp(id, 'GOING'),
+                                ),
+                                const SizedBox(width: 8),
+                                ChoiceChip(
+                                  label: const Text('Maybe'),
+                                  selected: myRsvp == 'MAYBE',
+                                  onSelected: busy
+                                      ? null
+                                      : (_) => _rsvp(id, 'MAYBE'),
+                                ),
+                                const SizedBox(width: 8),
+                                ChoiceChip(
+                                  label: const Text('Can\'t go'),
+                                  selected: myRsvp == 'DECLINED',
+                                  onSelected: busy
+                                      ? null
+                                      : (_) => _rsvp(id, 'DECLINED'),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+                      ),
+                    );
+                  }),
                 const SizedBox(height: 20),
                 const Text(
                   'Challenges',

@@ -406,4 +406,108 @@ export class CommunityService {
     await this.prisma.friendRequest.delete({ where: { id: request.id } });
     return { removed: true };
   }
+
+  async listEvents(user: AuthUser, tenant?: string) {
+    const ctx = await this.tenants.resolveActiveTenant(user, tenant);
+    const events = await this.prisma.communityEvent.findMany({
+      where: { tenantId: ctx.tenant.id, active: true },
+      orderBy: { startAt: 'asc' },
+      include: {
+        rsvps: {
+          where: { userId: user.id },
+          select: { status: true },
+        },
+        _count: { select: { rsvps: true } },
+      },
+    });
+    return events.map((e) => {
+      const { rsvps, _count, ...rest } = e;
+      return {
+        ...rest,
+        attendeeCount: _count.rsvps,
+        myRsvp: rsvps[0]?.status ?? null,
+      };
+    });
+  }
+
+  async createEvent(
+    user: AuthUser,
+    body: {
+      title: string;
+      description?: string;
+      location?: string;
+      startAt: string;
+      endAt?: string;
+    },
+    tenant?: string,
+  ) {
+    const ctx = await this.tenants.resolveActiveTenant(user, tenant);
+    this.tenants.assertStaffRole(ctx, STAFF_ROLES);
+    if (!body.title?.trim()) {
+      throw new BadRequestException('title is required');
+    }
+    if (!body.startAt || Number.isNaN(Date.parse(body.startAt))) {
+      throw new BadRequestException('startAt must be a valid date');
+    }
+    return this.prisma.communityEvent.create({
+      data: {
+        tenantId: ctx.tenant.id,
+        title: body.title.trim(),
+        description: body.description,
+        location: body.location,
+        startAt: new Date(body.startAt),
+        endAt: body.endAt ? new Date(body.endAt) : undefined,
+        createdByUserId: user.id,
+      },
+    });
+  }
+
+  async cancelEvent(user: AuthUser, id: string, tenant?: string) {
+    const ctx = await this.tenants.resolveActiveTenant(user, tenant);
+    this.tenants.assertStaffRole(ctx, STAFF_ROLES);
+    const event = await this.prisma.communityEvent.findFirst({
+      where: { id, tenantId: ctx.tenant.id },
+    });
+    if (!event) throw new NotFoundException('Event not found');
+    return this.prisma.communityEvent.update({
+      where: { id },
+      data: { active: false },
+    });
+  }
+
+  async rsvp(
+    user: AuthUser,
+    eventId: string,
+    status: 'GOING' | 'MAYBE' | 'DECLINED',
+    tenant?: string,
+  ) {
+    const ctx = await this.tenants.resolveActiveTenant(user, tenant);
+    const event = await this.prisma.communityEvent.findFirst({
+      where: { id: eventId, tenantId: ctx.tenant.id },
+    });
+    if (!event) throw new NotFoundException('Event not found');
+    return this.prisma.eventRsvp.upsert({
+      where: { eventId_userId: { eventId, userId: user.id } },
+      update: { status },
+      create: { tenantId: ctx.tenant.id, eventId, userId: user.id, status },
+    });
+  }
+
+  async listAttendees(user: AuthUser, eventId: string, tenant?: string) {
+    const ctx = await this.tenants.resolveActiveTenant(user, tenant);
+    const event = await this.prisma.communityEvent.findFirst({
+      where: { id: eventId, tenantId: ctx.tenant.id },
+    });
+    if (!event) throw new NotFoundException('Event not found');
+    const rsvps = await this.prisma.eventRsvp.findMany({
+      where: { eventId },
+      include: { user: { select: { id: true, displayName: true } } },
+      orderBy: { createdAt: 'asc' },
+    });
+    return rsvps.map((r) => ({
+      userId: r.user.id,
+      displayName: r.user.displayName,
+      status: r.status,
+    }));
+  }
 }

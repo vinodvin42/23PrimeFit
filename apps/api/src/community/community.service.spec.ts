@@ -152,3 +152,106 @@ describe('CommunityService friends', () => {
     ).rejects.toBeInstanceOf(NotFoundException);
   });
 });
+
+function assertStaffRoleLike(
+  ctx: { role: string; isPlatformAdmin: boolean },
+  allowed: string[],
+) {
+  if (ctx.isPlatformAdmin) return;
+  if (ctx.role === 'CLIENT') {
+    throw new ForbiddenException('Staff role required');
+  }
+  if (ctx.role !== 'PLATFORM_ADMIN' && !allowed.includes(ctx.role)) {
+    throw new ForbiddenException('Insufficient tenant role');
+  }
+}
+
+describe('CommunityService events', () => {
+  const staffCtx = { ...tenantCtx, role: 'COACH' as const };
+
+  it('rejects a client creating an event', async () => {
+    const tenants = {
+      resolveActiveTenant: jest.fn().mockResolvedValue(tenantCtx),
+      assertStaffRole: jest.fn(assertStaffRoleLike),
+    };
+    const service = new CommunityService({} as never, tenants as never);
+
+    await expect(
+      service.createEvent({ id: 'user-1' } as never, {
+        title: 'Group run',
+        startAt: '2026-08-01T06:00:00Z',
+      }),
+    ).rejects.toBeInstanceOf(ForbiddenException);
+  });
+
+  it('rejects an event with a blank title', async () => {
+    const tenants = {
+      resolveActiveTenant: jest.fn().mockResolvedValue(staffCtx),
+      assertStaffRole: jest.fn(assertStaffRoleLike),
+    };
+    const service = new CommunityService({} as never, tenants as never);
+
+    await expect(
+      service.createEvent({ id: 'user-1' } as never, {
+        title: '  ',
+        startAt: '2026-08-01T06:00:00Z',
+      }),
+    ).rejects.toBeInstanceOf(BadRequestException);
+  });
+
+  it('rejects an event with an unparseable startAt', async () => {
+    const tenants = {
+      resolveActiveTenant: jest.fn().mockResolvedValue(staffCtx),
+      assertStaffRole: jest.fn(assertStaffRoleLike),
+    };
+    const service = new CommunityService({} as never, tenants as never);
+
+    await expect(
+      service.createEvent({ id: 'user-1' } as never, {
+        title: 'Group run',
+        startAt: 'not-a-date',
+      }),
+    ).rejects.toBeInstanceOf(BadRequestException);
+  });
+
+  it('rejects RSVPing to an event outside the active tenant', async () => {
+    const prisma = {
+      communityEvent: { findFirst: jest.fn().mockResolvedValue(null) },
+    };
+    const tenants = {
+      resolveActiveTenant: jest.fn().mockResolvedValue(tenantCtx),
+    };
+    const service = new CommunityService(prisma as never, tenants as never);
+
+    await expect(
+      service.rsvp({ id: 'user-1' } as never, 'event-1', 'GOING'),
+    ).rejects.toBeInstanceOf(NotFoundException);
+  });
+
+  it('upserts an RSVP so re-RSVPing updates rather than duplicates', async () => {
+    const upsert = jest.fn().mockResolvedValue({ id: 'rsvp-1' });
+    const prisma = {
+      communityEvent: {
+        findFirst: jest.fn().mockResolvedValue({ id: 'event-1' }),
+      },
+      eventRsvp: { upsert },
+    };
+    const tenants = {
+      resolveActiveTenant: jest.fn().mockResolvedValue(tenantCtx),
+    };
+    const service = new CommunityService(prisma as never, tenants as never);
+
+    await service.rsvp({ id: 'user-1' } as never, 'event-1', 'MAYBE');
+
+    expect(upsert).toHaveBeenCalledWith({
+      where: { eventId_userId: { eventId: 'event-1', userId: 'user-1' } },
+      update: { status: 'MAYBE' },
+      create: {
+        tenantId: 'tenant-1',
+        eventId: 'event-1',
+        userId: 'user-1',
+        status: 'MAYBE',
+      },
+    });
+  });
+});

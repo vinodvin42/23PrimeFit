@@ -10,7 +10,7 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
-import { ChallengeKind } from '@prisma/client';
+import { ChallengeKind, EventRsvpStatus } from '@prisma/client';
 import { CurrentUser, FirebaseAuthGuard } from '../auth/auth.decorators';
 import type { AuthUser } from '../auth/auth-user';
 import { TENANT_HEADER } from '../tenants/tenant-context';
@@ -152,5 +152,57 @@ export class CommunityController {
     @Param('userId') userId: string,
   ) {
     return this.community.removeFriend(user, userId, tenant);
+  }
+
+  @Get('events')
+  listEvents(
+    @CurrentUser() user: AuthUser,
+    @Headers(TENANT_HEADER) tenant?: string,
+  ) {
+    return this.community.listEvents(user, tenant);
+  }
+
+  @Post('events')
+  createEvent(
+    @CurrentUser() user: AuthUser,
+    @Headers(TENANT_HEADER) tenant: string | undefined,
+    @Body()
+    body: {
+      title: string;
+      description?: string;
+      location?: string;
+      startAt: string;
+      endAt?: string;
+    },
+  ) {
+    return this.community.createEvent(user, body, tenant);
+  }
+
+  @Patch('events/:id/cancel')
+  cancelEvent(
+    @CurrentUser() user: AuthUser,
+    @Headers(TENANT_HEADER) tenant: string | undefined,
+    @Param('id') id: string,
+  ) {
+    return this.community.cancelEvent(user, id, tenant);
+  }
+
+  @Post('events/:id/rsvp')
+  rsvp(
+    @CurrentUser() user: AuthUser,
+    @Headers(TENANT_HEADER) tenant: string | undefined,
+    @Param('id') id: string,
+    @Body() body: { status: EventRsvpStatus },
+  ) {
+    return this.community.rsvp(user, id, body.status, tenant);
+  }
+
+  @Get('events/:id/attendees')
+  listAttendees(
+    @CurrentUser() user: AuthUser,
+    @Headers(TENANT_HEADER) tenant: string | undefined,
+    @Param('id') id: string,
+  ) {
+    return this.community.listAttendees(user, id, tenant);
   }
 }
