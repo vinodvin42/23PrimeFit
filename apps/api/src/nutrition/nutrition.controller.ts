@@ -4,6 +4,7 @@ import {
   Delete,
   Get,
   Param,
+  Patch,
   Post,
   Query,
   UseGuards,
@@ -72,6 +73,34 @@ export class NutritionController {
     @Query('days') days?: string,
   ) {
     return this.nutrition.hydrationHistory(user, days ? Number(days) : 7);
+  }
+
+  @Get('supplements')
+  listSupplements(@CurrentUser() user: AuthUser) {
+    return this.nutrition.listSupplements(user);
+  }
+
+  @Post('supplements')
+  createSupplement(
+    @CurrentUser() user: AuthUser,
+    @Body() body: { name: string; dosage?: string; schedule?: string },
+  ) {
+    return this.nutrition.createSupplement(user, body);
+  }
+
+  @Patch('supplements/:id/deactivate')
+  deactivateSupplement(@CurrentUser() user: AuthUser, @Param('id') id: string) {
+    return this.nutrition.deactivateSupplement(user, id);
+  }
+
+  @Post('supplements/:id/log')
+  logSupplement(@CurrentUser() user: AuthUser, @Param('id') id: string) {
+    return this.nutrition.logSupplement(user, id);
+  }
+
+  @Delete('supplements/:id/log')
+  unlogSupplement(@CurrentUser() user: AuthUser, @Param('id') id: string) {
+    return this.nutrition.unlogSupplement(user, id);
   }
 
   @Get('recipes')

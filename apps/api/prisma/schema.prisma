@@ -146,6 +146,8 @@ model User {
   challengeParticipants ChallengeParticipant[]
   achievements          Achievement[]
   hydrationLogs         HydrationLog[]
+  supplements           Supplement[]
+  supplementLogs        SupplementLog[]
 }
 
 model Profile {
@@ -1325,5 +1327,36 @@ model HydrationLog {
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
+  @@index([userId, dateKey])
+}
+
+/// Nutrition: user-defined supplement stack + daily intake checklist.
+model Supplement {
+  id        String   @id @default(cuid())
+  userId    String
+  name      String
+  dosage    String?
+  schedule  String?
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  logs SupplementLog[]
+
+  @@index([userId, active])
+}
+
+model SupplementLog {
+  id           String   @id @default(cuid())
+  userId       String
+  supplementId String
+  takenAt      DateTime @default(now())
+  dateKey      String
+
+  user       User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  supplement Supplement @relation(fields: [supplementId], references: [id], onDelete: Cascade)
+
+  @@unique([supplementId, dateKey])
   @@index([userId, dateKey])
 }

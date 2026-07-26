@@ -374,6 +374,72 @@ export class NutritionService {
     };
   }
 
+  async listSupplements(user: AuthUser) {
+    const dateKey = new Date().toISOString().slice(0, 10);
+    const supplements = await this.prisma.supplement.findMany({
+      where: { userId: user.id, active: true },
+      orderBy: { createdAt: 'asc' },
+      include: { logs: { where: { dateKey } } },
+    });
+    return supplements.map((s) => {
+      const { logs, ...rest } = s;
+      return { ...rest, takenToday: logs.length > 0 };
+    });
+  }
+
+  async createSupplement(
+    user: AuthUser,
+    body: { name: string; dosage?: string; schedule?: string },
+  ) {
+    if (!body.name?.trim()) {
+      throw new BadRequestException('name is required');
+    }
+    return this.prisma.supplement.create({
+      data: {
+        userId: user.id,
+        name: body.name.trim(),
+        dosage: body.dosage,
+        schedule: body.schedule,
+      },
+    });
+  }
+
+  async deactivateSupplement(user: AuthUser, id: string) {
+    const supplement = await this.prisma.supplement.findFirst({
+      where: { id, userId: user.id },
+    });
+    if (!supplement) throw new NotFoundException('Supplement not found');
+    return this.prisma.supplement.update({
+      where: { id },
+      data: { active: false },
+    });
+  }
+
+  async logSupplement(user: AuthUser, id: string) {
+    const supplement = await this.prisma.supplement.findFirst({
+      where: { id, userId: user.id },
+    });
+    if (!supplement) throw new NotFoundException('Supplement not found');
+    const dateKey = new Date().toISOString().slice(0, 10);
+    return this.prisma.supplementLog.upsert({
+      where: { supplementId_dateKey: { supplementId: id, dateKey } },
+      update: {},
+      create: { userId: user.id, supplementId: id, dateKey },
+    });
+  }
+
+  async unlogSupplement(user: AuthUser, id: string) {
+    const supplement = await this.prisma.supplement.findFirst({
+      where: { id, userId: user.id },
+    });
+    if (!supplement) throw new NotFoundException('Supplement not found');
+    const dateKey = new Date().toISOString().slice(0, 10);
+    await this.prisma.supplementLog.deleteMany({
+      where: { supplementId: id, dateKey },
+    });
+    return { supplementId: id, dateKey, takenToday: false };
+  }
+
   async addLog(
     user: AuthUser,
     body: { foodItemId: string; mealType: string; servings?: number },
