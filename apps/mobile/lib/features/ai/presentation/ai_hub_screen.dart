@@ -196,6 +196,12 @@ class _AiHubScreenState extends ConsumerState<AiHubScreen> {
                       subtitle: 'Sleep & readiness',
                       onTap: () => context.push('/recover'),
                     ),
+                    _MiniSuggestionCard(
+                      icon: Icons.emoji_events_outlined,
+                      title: 'Community',
+                      subtitle: 'Challenges & streaks',
+                      onTap: () => context.push('/community'),
+                    ),
                   ],
                 ),
               ),

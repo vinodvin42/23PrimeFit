@@ -15,6 +15,7 @@ const links: Array<{ href: string; label: string; icon: IconName }> = [
   { href: '/consults', label: 'Schedule', icon: 'calendar' },
   { href: '/ai', label: 'AI insights', icon: 'sparkles' },
   { href: '/content', label: 'Content studio', icon: 'dumbbell' },
+  { href: '/community', label: 'Community', icon: 'trophy' },
   { href: '/crm', label: 'Client CRM', icon: 'clients' },
   { href: '/workspace', label: 'Workspace', icon: 'activity' },
 ];
@@ -33,6 +34,7 @@ const pageChrome: Record<
   '/consults': { eyebrow: 'Training calendar', title: 'Schedule' },
   '/ai': { eyebrow: 'Human-reviewed intelligence', title: 'AI insights' },
   '/content': { eyebrow: 'Coach CMS', title: 'Content studio' },
+  '/community': { eyebrow: 'Engagement', title: 'Community' },
   '/crm': {
     eyebrow: 'Business suite',
     title: 'Client CRM',

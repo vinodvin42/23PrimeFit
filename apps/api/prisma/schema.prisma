@@ -143,6 +143,8 @@ model User {
   healthspanSnapshots HealthspanSnapshot[]
   foodVisionLogs      FoodVisionLog[]
   postureAnalyses     PostureAnalysis[]
+  challengeParticipants ChallengeParticipant[]
+  achievements          Achievement[]
 }
 
 model Profile {
@@ -873,6 +875,9 @@ model Tenant {
   marketplaceEnrollments MarketplaceEnrollment[]
   apiKeys             ApiKey[]
   webhookEndpoints    WebhookEndpoint[]
+  challenges             Challenge[]
+  challengeParticipants  ChallengeParticipant[]
+  achievements           Achievement[]
 
   @@index([type, active])
   @@index([ownerUserId])
@@ -1245,4 +1250,66 @@ model WebhookEndpoint {
   tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
 
   @@index([tenantId, active])
+}
+
+enum ChallengeKind {
+  WORKOUT_COUNT
+  STREAK_DAYS
+  NUTRITION_LOG_COUNT
+  CUSTOM
+}
+
+/// Community: tenant-scoped challenges coaches run for their clients.
+model Challenge {
+  id              String        @id @default(cuid())
+  tenantId        String
+  title           String
+  description     String?
+  kind            ChallengeKind @default(CUSTOM)
+  targetValue     Int           @default(1)
+  startAt         DateTime
+  endAt           DateTime
+  createdByUserId String
+  active          Boolean       @default(true)
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  tenant       Tenant                 @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  participants ChallengeParticipant[]
+
+  @@index([tenantId, active])
+}
+
+model ChallengeParticipant {
+  id            String    @id @default(cuid())
+  tenantId      String
+  challengeId   String
+  userId        String
+  progressValue Int       @default(0)
+  completedAt   DateTime?
+  joinedAt      DateTime  @default(now())
+
+  tenant    Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  challenge Challenge @relation(fields: [challengeId], references: [id], onDelete: Cascade)
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([challengeId, userId])
+  @@index([tenantId, userId])
+}
+
+/// Community: gamification badges unlocked per tenant membership (streaks, challenge wins).
+model Achievement {
+  id          String   @id @default(cuid())
+  tenantId    String
+  userId      String
+  code        String
+  title       String
+  description String?
+  unlockedAt  DateTime @default(now())
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, userId, code])
+  @@index([tenantId, userId])
 }

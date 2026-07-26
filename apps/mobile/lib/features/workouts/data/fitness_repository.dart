@@ -399,6 +399,46 @@ class FitnessRepository {
     return (res.data ?? []).whereType<Map<String, dynamic>>().toList();
   }
 
+  Future<List<Map<String, dynamic>>> listChallenges() async {
+    final res = await _dio.get<List<dynamic>>('/community/challenges');
+    return (res.data ?? []).whereType<Map<String, dynamic>>().toList();
+  }
+
+  Future<Map<String, dynamic>> joinChallenge(String id) async {
+    final res = await _dio.post<Map<String, dynamic>>(
+      '/community/challenges/$id/join',
+    );
+    return res.data!;
+  }
+
+  Future<Map<String, dynamic>> logChallengeProgress(
+    String id,
+    int delta,
+  ) async {
+    final res = await _dio.post<Map<String, dynamic>>(
+      '/community/challenges/$id/progress',
+      data: {'delta': delta},
+    );
+    return res.data!;
+  }
+
+  Future<Map<String, dynamic>> challengeLeaderboard(String id) async {
+    final res = await _dio.get<Map<String, dynamic>>(
+      '/community/challenges/$id/leaderboard',
+    );
+    return res.data!;
+  }
+
+  Future<List<Map<String, dynamic>>> listAchievements() async {
+    final res = await _dio.get<List<dynamic>>('/community/achievements');
+    return (res.data ?? []).whereType<Map<String, dynamic>>().toList();
+  }
+
+  Future<Map<String, dynamic>> communityStreak() async {
+    final res = await _dio.get<Map<String, dynamic>>('/community/streak');
+    return res.data!;
+  }
+
   Future<Map<String, dynamic>> aiDashboard() async {
     final res = await _dio.get<Map<String, dynamic>>('/ai/dashboard');
     return res.data!;

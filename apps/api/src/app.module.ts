@@ -26,6 +26,7 @@ import { CrmModule } from './crm/crm.module';
 import { PlatformModule } from './platform/platform.module';
 import { MarketplaceModule } from './marketplace/marketplace.module';
 import { PartnerModule } from './partner/partner.module';
+import { CommunityModule } from './community/community.module';
 import { HealthController } from './health.controller';
 import { PaymentsWebhookController } from './consultations/payments-webhook.controller';
 
@@ -58,6 +59,7 @@ import { PaymentsWebhookController } from './consultations/payments-webhook.cont
     PlatformModule,
     MarketplaceModule,
     PartnerModule,
+    CommunityModule,
   ],
   controllers: [HealthController, PaymentsWebhookController],
 })
