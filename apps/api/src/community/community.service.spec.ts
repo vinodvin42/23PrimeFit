@@ -255,3 +255,99 @@ describe('CommunityService events', () => {
     });
   });
 });
+
+describe('CommunityService transformation stories', () => {
+  it('rejects an empty story with no caption and no photos', async () => {
+    const tenants = {
+      resolveActiveTenant: jest.fn().mockResolvedValue(tenantCtx),
+    };
+    const service = new CommunityService({} as never, tenants as never);
+
+    await expect(
+      service.createStory({ id: 'user-1' } as never, {}),
+    ).rejects.toBeInstanceOf(BadRequestException);
+  });
+
+  it('rejects a story referencing a photo the caller does not own', async () => {
+    const prisma = {
+      progressPhoto: { count: jest.fn().mockResolvedValue(0) },
+    };
+    const tenants = {
+      resolveActiveTenant: jest.fn().mockResolvedValue(tenantCtx),
+    };
+    const service = new CommunityService(prisma as never, tenants as never);
+
+    await expect(
+      service.createStory({ id: 'user-1' } as never, {
+        beforePhotoId: 'photo-1',
+      }),
+    ).rejects.toBeInstanceOf(NotFoundException);
+  });
+
+  it('creates a caption-only story with no photos', async () => {
+    const create = jest.fn().mockResolvedValue({ id: 'story-1' });
+    const prisma = { transformationStory: { create } };
+    const tenants = {
+      resolveActiveTenant: jest.fn().mockResolvedValue(tenantCtx),
+    };
+    const service = new CommunityService(prisma as never, tenants as never);
+
+    await service.createStory({ id: 'user-1' } as never, {
+      caption: '3 months in!',
+    });
+
+    expect(create).toHaveBeenCalledWith({
+      data: {
+        tenantId: 'tenant-1',
+        userId: 'user-1',
+        caption: '3 months in!',
+        beforePhotoId: undefined,
+        afterPhotoId: undefined,
+      },
+    });
+  });
+
+  it('rejects removing a story owned by someone else', async () => {
+    const prisma = {
+      transformationStory: {
+        findFirst: jest
+          .fn()
+          .mockResolvedValue({ id: 'story-1', userId: 'user-2' }),
+      },
+    };
+    const tenants = {
+      resolveActiveTenant: jest.fn().mockResolvedValue(tenantCtx),
+    };
+    const service = new CommunityService(prisma as never, tenants as never);
+
+    await expect(
+      service.removeStory({ id: 'user-1' } as never, 'story-1'),
+    ).rejects.toBeInstanceOf(ForbiddenException);
+  });
+
+  it('toggles a cheer off when the caller already cheered', async () => {
+    const del = jest.fn().mockResolvedValue({});
+    const prisma = {
+      transformationStory: {
+        findFirst: jest.fn().mockResolvedValue({ id: 'story-1' }),
+      },
+      storyCheer: {
+        findUnique: jest.fn().mockResolvedValue({ id: 'cheer-1' }),
+        delete: del,
+        count: jest.fn().mockResolvedValue(2),
+      },
+    };
+    const tenants = {
+      resolveActiveTenant: jest.fn().mockResolvedValue(tenantCtx),
+    };
+    const service = new CommunityService(prisma as never, tenants as never);
+
+    const result = await service.cheerStory(
+      { id: 'user-1' } as never,
+      'story-1',
+    );
+
+    expect(del).toHaveBeenCalledWith({ where: { id: 'cheer-1' } });
+    expect(result).toEqual({ cheered: false, cheerCount: 2 });
+  });
+});

@@ -220,6 +220,26 @@ class _CommunityScreenState extends ConsumerState<CommunityScreen> {
                     ],
                   ),
                 ),
+                const SizedBox(height: 8),
+                GlassCard(
+                  onTap: () => context.push('/stories'),
+                  child: const Row(
+                    children: [
+                      Icon(Icons.auto_awesome, color: AppColors.lime),
+                      SizedBox(width: 10),
+                      Expanded(
+                        child: Text(
+                          'Transformation Stories',
+                          style: TextStyle(
+                            color: AppColors.white,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ),
+                      Icon(Icons.chevron_right, color: AppColors.mutedOnDark),
+                    ],
+                  ),
+                ),
                 const SizedBox(height: 16),
                 if (_loading)
                   const LinearProgressIndicator(color: AppColors.lime),

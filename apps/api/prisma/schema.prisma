@@ -160,6 +160,8 @@ model User {
   sentFriendRequests     FriendRequest[] @relation("FriendRequestsSent")
   receivedFriendRequests FriendRequest[] @relation("FriendRequestsReceived")
   eventRsvps             EventRsvp[]
+  transformationStories  TransformationStory[]
+  storyCheers            StoryCheer[]
 }
 
 model Profile {
@@ -614,6 +616,8 @@ model ProgressPhoto {
   createdAt    DateTime @default(now())
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  storiesAsBefore TransformationStory[] @relation("StoryBeforePhoto")
+  storiesAsAfter  TransformationStory[] @relation("StoryAfterPhoto")
 
   @@index([userId, takenAt])
 }
@@ -899,6 +903,8 @@ model Tenant {
   friendRequests         FriendRequest[]
   communityEvents        CommunityEvent[]
   eventRsvps             EventRsvp[]
+  transformationStories  TransformationStory[]
+  storyCheers            StoryCheer[]
 
   @@index([type, active])
   @@index([ownerUserId])
@@ -1661,5 +1667,39 @@ model EventRsvp {
   user   User           @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([eventId, userId])
+  @@index([tenantId, userId])
+}
+
+/// Community: a client's before/after progress story, optionally linked to their own ProgressPhoto rows.
+model TransformationStory {
+  id            String   @id @default(cuid())
+  tenantId      String
+  userId        String
+  caption       String?
+  beforePhotoId String?
+  afterPhotoId  String?
+  createdAt     DateTime @default(now())
+
+  tenant      Tenant        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  user        User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  beforePhoto ProgressPhoto? @relation("StoryBeforePhoto", fields: [beforePhotoId], references: [id], onDelete: SetNull)
+  afterPhoto  ProgressPhoto? @relation("StoryAfterPhoto", fields: [afterPhotoId], references: [id], onDelete: SetNull)
+  cheers      StoryCheer[]
+
+  @@index([tenantId, createdAt])
+}
+
+model StoryCheer {
+  id        String   @id @default(cuid())
+  tenantId  String
+  storyId   String
+  userId    String
+  createdAt DateTime @default(now())
+
+  tenant Tenant              @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  story  TransformationStory @relation(fields: [storyId], references: [id], onDelete: Cascade)
+  user   User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([storyId, userId])
   @@index([tenantId, userId])
 }

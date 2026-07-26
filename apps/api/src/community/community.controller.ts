@@ -205,4 +205,40 @@ export class CommunityController {
   ) {
     return this.community.listAttendees(user, id, tenant);
   }
+
+  @Get('stories')
+  listStories(
+    @CurrentUser() user: AuthUser,
+    @Headers(TENANT_HEADER) tenant?: string,
+  ) {
+    return this.community.listStories(user, tenant);
+  }
+
+  @Post('stories')
+  createStory(
+    @CurrentUser() user: AuthUser,
+    @Headers(TENANT_HEADER) tenant: string | undefined,
+    @Body()
+    body: { caption?: string; beforePhotoId?: string; afterPhotoId?: string },
+  ) {
+    return this.community.createStory(user, body, tenant);
+  }
+
+  @Delete('stories/:id')
+  removeStory(
+    @CurrentUser() user: AuthUser,
+    @Headers(TENANT_HEADER) tenant: string | undefined,
+    @Param('id') id: string,
+  ) {
+    return this.community.removeStory(user, id, tenant);
+  }
+
+  @Post('stories/:id/cheer')
+  cheerStory(
+    @CurrentUser() user: AuthUser,
+    @Headers(TENANT_HEADER) tenant: string | undefined,
+    @Param('id') id: string,
+  ) {
+    return this.community.cheerStory(user, id, tenant);
+  }
 }

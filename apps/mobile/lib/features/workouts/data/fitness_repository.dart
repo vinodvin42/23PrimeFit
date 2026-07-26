@@ -752,6 +752,37 @@ class FitnessRepository {
     );
   }
 
+  Future<List<Map<String, dynamic>>> listStories() async {
+    final res = await _dio.get<List<dynamic>>('/community/stories');
+    return (res.data ?? []).whereType<Map<String, dynamic>>().toList();
+  }
+
+  Future<void> createStory({
+    String? caption,
+    String? beforePhotoId,
+    String? afterPhotoId,
+  }) async {
+    await _dio.post<Map<String, dynamic>>(
+      '/community/stories',
+      data: {
+        if (caption != null) 'caption': caption,
+        if (beforePhotoId != null) 'beforePhotoId': beforePhotoId,
+        if (afterPhotoId != null) 'afterPhotoId': afterPhotoId,
+      },
+    );
+  }
+
+  Future<void> removeStory(String id) async {
+    await _dio.delete('/community/stories/$id');
+  }
+
+  Future<Map<String, dynamic>> cheerStory(String id) async {
+    final res = await _dio.post<Map<String, dynamic>>(
+      '/community/stories/$id/cheer',
+    );
+    return res.data!;
+  }
+
   Future<Map<String, dynamic>> aiDashboard() async {
     final res = await _dio.get<Map<String, dynamic>>('/ai/dashboard');
     return res.data!;
@@ -991,6 +1022,11 @@ final friendsProvider =
 final communityEventsProvider =
     FutureProvider.autoDispose<List<Map<String, dynamic>>>((ref) {
   return ref.watch(fitnessRepositoryProvider).listEvents();
+});
+
+final transformationStoriesProvider =
+    FutureProvider.autoDispose<List<Map<String, dynamic>>>((ref) {
+  return ref.watch(fitnessRepositoryProvider).listStories();
 });
 
 final bloodPressureProvider =

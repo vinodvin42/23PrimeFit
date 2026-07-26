@@ -510,4 +510,94 @@ export class CommunityService {
       status: r.status,
     }));
   }
+
+  async listStories(user: AuthUser, tenant?: string) {
+    const ctx = await this.tenants.resolveActiveTenant(user, tenant);
+    const stories = await this.prisma.transformationStory.findMany({
+      where: { tenantId: ctx.tenant.id },
+      orderBy: { createdAt: 'desc' },
+      take: 100,
+      include: {
+        user: { select: { id: true, displayName: true } },
+        beforePhoto: { select: { id: true, fileUrl: true } },
+        afterPhoto: { select: { id: true, fileUrl: true } },
+        cheers: { where: { userId: user.id }, select: { id: true } },
+        _count: { select: { cheers: true } },
+      },
+    });
+    return stories.map((s) => {
+      const { cheers, _count, ...rest } = s;
+      return {
+        ...rest,
+        cheerCount: _count.cheers,
+        cheeredByMe: cheers.length > 0,
+        isMine: s.userId === user.id,
+      };
+    });
+  }
+
+  async createStory(
+    user: AuthUser,
+    body: { caption?: string; beforePhotoId?: string; afterPhotoId?: string },
+    tenant?: string,
+  ) {
+    const ctx = await this.tenants.resolveActiveTenant(user, tenant);
+    const caption = body.caption?.trim() || undefined;
+    if (!caption && !body.beforePhotoId && !body.afterPhotoId) {
+      throw new BadRequestException('Add a caption or at least one photo');
+    }
+    const photoIds = [body.beforePhotoId, body.afterPhotoId].filter(
+      (id): id is string => !!id,
+    );
+    if (photoIds.length) {
+      const owned = await this.prisma.progressPhoto.count({
+        where: { id: { in: photoIds }, userId: user.id },
+      });
+      if (owned !== photoIds.length) {
+        throw new NotFoundException('One of the selected photos was not found');
+      }
+    }
+    return this.prisma.transformationStory.create({
+      data: {
+        tenantId: ctx.tenant.id,
+        userId: user.id,
+        caption,
+        beforePhotoId: body.beforePhotoId,
+        afterPhotoId: body.afterPhotoId,
+      },
+    });
+  }
+
+  async removeStory(user: AuthUser, id: string, tenant?: string) {
+    const ctx = await this.tenants.resolveActiveTenant(user, tenant);
+    const story = await this.prisma.transformationStory.findFirst({
+      where: { id, tenantId: ctx.tenant.id },
+    });
+    if (!story) throw new NotFoundException('Story not found');
+    if (story.userId !== user.id) throw new ForbiddenException();
+    await this.prisma.transformationStory.delete({ where: { id } });
+    return { removed: true };
+  }
+
+  async cheerStory(user: AuthUser, id: string, tenant?: string) {
+    const ctx = await this.tenants.resolveActiveTenant(user, tenant);
+    const story = await this.prisma.transformationStory.findFirst({
+      where: { id, tenantId: ctx.tenant.id },
+    });
+    if (!story) throw new NotFoundException('Story not found');
+    const existing = await this.prisma.storyCheer.findUnique({
+      where: { storyId_userId: { storyId: id, userId: user.id } },
+    });
+    if (existing) {
+      await this.prisma.storyCheer.delete({ where: { id: existing.id } });
+    } else {
+      await this.prisma.storyCheer.create({
+        data: { tenantId: ctx.tenant.id, storyId: id, userId: user.id },
+      });
+    }
+    const cheerCount = await this.prisma.storyCheer.count({
+      where: { storyId: id },
+    });
+    return { cheered: !existing, cheerCount };
+  }
 }

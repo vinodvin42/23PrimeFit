@@ -23,6 +23,7 @@ import 'package:primefit_mobile/features/recovery/presentation/recover_screen.da
 import 'package:primefit_mobile/features/coach/presentation/coach_hub_screen.dart';
 import 'package:primefit_mobile/features/community/presentation/community_screen.dart';
 import 'package:primefit_mobile/features/community/presentation/friends_screen.dart';
+import 'package:primefit_mobile/features/community/presentation/stories_screen.dart';
 import 'package:primefit_mobile/features/medications/presentation/medications_screen.dart';
 import 'package:primefit_mobile/features/health_timeline/presentation/health_timeline_screen.dart';
 import 'package:primefit_mobile/features/vitals/presentation/vitals_screen.dart';
@@ -101,6 +102,10 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/friends',
         builder: (context, state) => const FriendsScreen(),
+      ),
+      GoRoute(
+        path: '/stories',
+        builder: (context, state) => const StoriesScreen(),
       ),
       GoRoute(
         path: '/medications',
