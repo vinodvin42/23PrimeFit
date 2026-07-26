@@ -108,4 +108,38 @@ export class VitalsController {
   removeVaccination(@CurrentUser() user: AuthUser, @Param('id') id: string) {
     return this.vitals.removeVaccination(user, id);
   }
+
+  @Get('measurements')
+  listBodyMeasurements(
+    @CurrentUser() user: AuthUser,
+    @Query('days') days?: string,
+  ) {
+    return this.vitals.listBodyMeasurements(user, days ? Number(days) : 180);
+  }
+
+  @Post('measurements')
+  addBodyMeasurement(
+    @CurrentUser() user: AuthUser,
+    @Body()
+    body: {
+      waistCm?: number;
+      hipCm?: number;
+      chestCm?: number;
+      armCm?: number;
+      thighCm?: number;
+      bodyFatPct?: number;
+      muscleMassKg?: number;
+      notes?: string;
+    },
+  ) {
+    return this.vitals.addBodyMeasurement(user, body);
+  }
+
+  @Delete('measurements/:id')
+  removeBodyMeasurement(
+    @CurrentUser() user: AuthUser,
+    @Param('id') id: string,
+  ) {
+    return this.vitals.removeBodyMeasurement(user, id);
+  }
 }

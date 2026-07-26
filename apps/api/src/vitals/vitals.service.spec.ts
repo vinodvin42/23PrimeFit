@@ -152,3 +152,38 @@ describe('VitalsService vaccinations', () => {
     ).rejects.toBeInstanceOf(NotFoundException);
   });
 });
+
+describe('VitalsService body measurements', () => {
+  it('rejects a measurement entry with no values at all', async () => {
+    const service = new VitalsService({} as never);
+
+    await expect(
+      service.addBodyMeasurement({ id: 'user-1' } as never, {
+        notes: 'no numbers here',
+      }),
+    ).rejects.toBeInstanceOf(BadRequestException);
+  });
+
+  it('accepts an entry with only one measurement field set', async () => {
+    const create = jest.fn().mockResolvedValue({ id: 'measurement-1' });
+    const prisma = { bodyMeasurement: { create } };
+    const service = new VitalsService(prisma as never);
+
+    await service.addBodyMeasurement({ id: 'user-1' } as never, {
+      waistCm: 82,
+    });
+
+    expect(create).toHaveBeenCalledTimes(1);
+  });
+
+  it('rejects removing a measurement that does not belong to the user', async () => {
+    const prisma = {
+      bodyMeasurement: { findFirst: jest.fn().mockResolvedValue(null) },
+    };
+    const service = new VitalsService(prisma as never);
+
+    await expect(
+      service.removeBodyMeasurement({ id: 'user-1' } as never, 'm-1'),
+    ).rejects.toBeInstanceOf(NotFoundException);
+  });
+});

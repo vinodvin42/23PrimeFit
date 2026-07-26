@@ -18,7 +18,7 @@ class _VitalsScreenState extends State<VitalsScreen>
   @override
   void initState() {
     super.initState();
-    _tabs = TabController(length: 4, vsync: this);
+    _tabs = TabController(length: 5, vsync: this);
   }
 
   @override
@@ -70,6 +70,7 @@ class _VitalsScreenState extends State<VitalsScreen>
                   Tab(text: 'Blood sugar'),
                   Tab(text: 'Allergies'),
                   Tab(text: 'Vaccinations'),
+                  Tab(text: 'Measurements'),
                 ],
               ),
               Expanded(
@@ -80,6 +81,7 @@ class _VitalsScreenState extends State<VitalsScreen>
                     _BloodSugarTab(),
                     _AllergiesTab(),
                     _VaccinationsTab(),
+                    _BodyMeasurementsTab(),
                   ],
                 ),
               ),
@@ -878,6 +880,235 @@ class _VaccinationsTabState extends ConsumerState<_VaccinationsTab> {
                                 if (nextDue != null)
                                   'Next due $nextDue',
                               ].join(' · '),
+                              style: const TextStyle(
+                                color: AppColors.mutedOnDark,
+                              ),
+                            ),
+                            trailing: IconButton(
+                              icon: const Icon(Icons.close,
+                                  color: AppColors.mutedOnDark),
+                              onPressed: _busyId == id
+                                  ? null
+                                  : () => _remove(id),
+                            ),
+                          ),
+                        ),
+                      );
+                    }),
+                  const SizedBox(height: 12),
+                  Text(
+                    '${payload['disclaimer']}',
+                    style: const TextStyle(
+                      color: AppColors.mutedOnDark,
+                      fontSize: 12,
+                    ),
+                  ),
+                ],
+              );
+            },
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _BodyMeasurementsTab extends ConsumerStatefulWidget {
+  const _BodyMeasurementsTab();
+
+  @override
+  ConsumerState<_BodyMeasurementsTab> createState() =>
+      _BodyMeasurementsTabState();
+}
+
+class _BodyMeasurementsTabState extends ConsumerState<_BodyMeasurementsTab> {
+  final _waist = TextEditingController();
+  final _hip = TextEditingController();
+  final _chest = TextEditingController();
+  final _arm = TextEditingController();
+  final _thigh = TextEditingController();
+  final _bodyFat = TextEditingController();
+  final _muscleMass = TextEditingController();
+  bool _saving = false;
+  String? _busyId;
+
+  @override
+  void dispose() {
+    _waist.dispose();
+    _hip.dispose();
+    _chest.dispose();
+    _arm.dispose();
+    _thigh.dispose();
+    _bodyFat.dispose();
+    _muscleMass.dispose();
+    super.dispose();
+  }
+
+  Future<void> _add() async {
+    final waist = double.tryParse(_waist.text.trim());
+    final hip = double.tryParse(_hip.text.trim());
+    final chest = double.tryParse(_chest.text.trim());
+    final arm = double.tryParse(_arm.text.trim());
+    final thigh = double.tryParse(_thigh.text.trim());
+    final bodyFat = double.tryParse(_bodyFat.text.trim());
+    final muscleMass = double.tryParse(_muscleMass.text.trim());
+    if ([waist, hip, chest, arm, thigh, bodyFat, muscleMass]
+        .every((v) => v == null)) {
+      return;
+    }
+    setState(() => _saving = true);
+    try {
+      await ref.read(fitnessRepositoryProvider).addBodyMeasurement(
+            waistCm: waist,
+            hipCm: hip,
+            chestCm: chest,
+            armCm: arm,
+            thighCm: thigh,
+            bodyFatPct: bodyFat,
+            muscleMassKg: muscleMass,
+          );
+      _waist.clear();
+      _hip.clear();
+      _chest.clear();
+      _arm.clear();
+      _thigh.clear();
+      _bodyFat.clear();
+      _muscleMass.clear();
+      ref.invalidate(bodyMeasurementsProvider);
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text('$e')));
+      }
+    } finally {
+      if (mounted) setState(() => _saving = false);
+    }
+  }
+
+  Future<void> _remove(String id) async {
+    setState(() => _busyId = id);
+    try {
+      await ref.read(fitnessRepositoryProvider).removeBodyMeasurement(id);
+      ref.invalidate(bodyMeasurementsProvider);
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text('$e')));
+      }
+    } finally {
+      if (mounted) setState(() => _busyId = null);
+    }
+  }
+
+  Widget _field(TextEditingController c, String hint) {
+    return SizedBox(
+      width: 140,
+      child: TextField(
+        controller: c,
+        keyboardType: const TextInputType.numberWithOptions(decimal: true),
+        style: const TextStyle(color: AppColors.white),
+        decoration: InputDecoration(hintText: hint),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final data = ref.watch(bodyMeasurementsProvider);
+    return RefreshIndicator(
+      color: AppColors.lime,
+      onRefresh: () async {
+        ref.invalidate(bodyMeasurementsProvider);
+        await ref.read(bodyMeasurementsProvider.future);
+      },
+      child: ListView(
+        padding: const EdgeInsets.all(24),
+        children: [
+          GlassCard(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Log measurements',
+                  style: TextStyle(
+                    color: AppColors.white,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                const Text(
+                  'Fill in whichever you tracked today.',
+                  style:
+                      TextStyle(color: AppColors.mutedOnDark, fontSize: 12),
+                ),
+                const SizedBox(height: 10),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: [
+                    _field(_waist, 'Waist (cm)'),
+                    _field(_hip, 'Hip (cm)'),
+                    _field(_chest, 'Chest (cm)'),
+                    _field(_arm, 'Arm (cm)'),
+                    _field(_thigh, 'Thigh (cm)'),
+                    _field(_bodyFat, 'Body fat %'),
+                    _field(_muscleMass, 'Muscle mass (kg)'),
+                  ],
+                ),
+                const SizedBox(height: 10),
+                ElevatedButton(
+                  onPressed: _saving ? null : _add,
+                  child: Text(_saving ? 'Saving…' : 'Save measurements'),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 16),
+          data.when(
+            loading: () => const Center(
+              child: CircularProgressIndicator(color: AppColors.lime),
+            ),
+            error: (e, _) =>
+                Text('$e', style: const TextStyle(color: AppColors.danger)),
+            data: (payload) {
+              final entries = (payload['measurements'] as List? ?? [])
+                  .whereType<Map<String, dynamic>>()
+                  .toList();
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  if (entries.isEmpty)
+                    const GlassCard(
+                      child: Text(
+                        'No measurements logged yet.',
+                        style: TextStyle(color: AppColors.soft),
+                      ),
+                    )
+                  else
+                    ...entries.map((m) {
+                      final id = m['id'] as String;
+                      final parts = <String>[
+                        if (m['waistCm'] != null) 'Waist ${m['waistCm']}cm',
+                        if (m['hipCm'] != null) 'Hip ${m['hipCm']}cm',
+                        if (m['chestCm'] != null) 'Chest ${m['chestCm']}cm',
+                        if (m['armCm'] != null) 'Arm ${m['armCm']}cm',
+                        if (m['thighCm'] != null) 'Thigh ${m['thighCm']}cm',
+                        if (m['bodyFatPct'] != null)
+                          'BF ${m['bodyFatPct']}%',
+                        if (m['muscleMassKg'] != null)
+                          'Muscle ${m['muscleMassKg']}kg',
+                      ];
+                      return Padding(
+                        padding: const EdgeInsets.only(bottom: 6),
+                        child: GlassCard(
+                          padding: EdgeInsets.zero,
+                          child: ListTile(
+                            title: Text(
+                              parts.join(' · '),
+                              style: const TextStyle(color: AppColors.white),
+                            ),
+                            subtitle: Text(
+                              '${m['recordedAt']}',
                               style: const TextStyle(
                                 color: AppColors.mutedOnDark,
                               ),

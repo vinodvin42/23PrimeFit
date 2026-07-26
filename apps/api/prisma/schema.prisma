@@ -156,6 +156,7 @@ model User {
   bloodSugarReadings    BloodSugarReading[]
   allergies             Allergy[]
   vaccinations          Vaccination[]
+  bodyMeasurements      BodyMeasurement[]
 }
 
 model Profile {
@@ -1494,4 +1495,24 @@ model Vaccination {
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId, administeredAt])
+}
+
+/// Health: personal body measurement log (circumference/composition trend tracking).
+model BodyMeasurement {
+  id           String   @id @default(cuid())
+  userId       String
+  waistCm      Float?
+  hipCm        Float?
+  chestCm      Float?
+  armCm        Float?
+  thighCm      Float?
+  bodyFatPct   Float?
+  muscleMassKg Float?
+  notes        String?
+  recordedAt   DateTime @default(now())
+  dateKey      String
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, recordedAt])
 }

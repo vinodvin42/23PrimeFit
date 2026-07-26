@@ -496,6 +496,40 @@ class FitnessRepository {
     await _dio.delete('/vitals/vaccinations/$id');
   }
 
+  Future<Map<String, dynamic>> listBodyMeasurements() async {
+    final res = await _dio.get<Map<String, dynamic>>('/vitals/measurements');
+    return res.data!;
+  }
+
+  Future<void> addBodyMeasurement({
+    double? waistCm,
+    double? hipCm,
+    double? chestCm,
+    double? armCm,
+    double? thighCm,
+    double? bodyFatPct,
+    double? muscleMassKg,
+    String? notes,
+  }) async {
+    await _dio.post<Map<String, dynamic>>(
+      '/vitals/measurements',
+      data: {
+        if (waistCm != null) 'waistCm': waistCm,
+        if (hipCm != null) 'hipCm': hipCm,
+        if (chestCm != null) 'chestCm': chestCm,
+        if (armCm != null) 'armCm': armCm,
+        if (thighCm != null) 'thighCm': thighCm,
+        if (bodyFatPct != null) 'bodyFatPct': bodyFatPct,
+        if (muscleMassKg != null) 'muscleMassKg': muscleMassKg,
+        if (notes != null && notes.isNotEmpty) 'notes': notes,
+      },
+    );
+  }
+
+  Future<void> removeBodyMeasurement(String id) async {
+    await _dio.delete('/vitals/measurements/$id');
+  }
+
   Future<List<RecipeItem>> listRecipes([String? q]) async {
     final res = await _dio.get<List<dynamic>>(
       '/nutrition/recipes',
@@ -912,6 +946,11 @@ final allergiesProvider =
 final vaccinationsProvider =
     FutureProvider.autoDispose<Map<String, dynamic>>((ref) {
   return ref.watch(fitnessRepositoryProvider).listVaccinations();
+});
+
+final bodyMeasurementsProvider =
+    FutureProvider.autoDispose<Map<String, dynamic>>((ref) {
+  return ref.watch(fitnessRepositoryProvider).listBodyMeasurements();
 });
 
 final recoveryTodayProvider = FutureProvider.autoDispose<RecoveryToday>((ref) {

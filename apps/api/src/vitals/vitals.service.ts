@@ -10,6 +10,17 @@ import { PrismaService } from '../prisma/prisma.service';
 const DISCLAIMER =
   'These readings are a personal log for spotting trends — not a diagnosis or treatment recommendation. If a reading concerns you, contact a healthcare professional.';
 
+type BodyMeasurementInput = {
+  waistCm?: number;
+  hipCm?: number;
+  chestCm?: number;
+  armCm?: number;
+  thighCm?: number;
+  bodyFatPct?: number;
+  muscleMassKg?: number;
+  notes?: string;
+};
+
 @Injectable()
 export class VitalsService {
   constructor(private readonly prisma: PrismaService) {}
@@ -193,6 +204,58 @@ export class VitalsService {
     });
     if (!vaccination) throw new NotFoundException('Vaccination not found');
     await this.prisma.vaccination.delete({ where: { id } });
+    return { id };
+  }
+
+  async listBodyMeasurements(user: AuthUser, days = 180) {
+    const from = new Date(Date.now() - days * 86400000);
+    const measurements = await this.prisma.bodyMeasurement.findMany({
+      where: { userId: user.id, recordedAt: { gte: from } },
+      orderBy: { recordedAt: 'desc' },
+    });
+    return { disclaimer: DISCLAIMER, measurements };
+  }
+
+  async addBodyMeasurement(user: AuthUser, body: BodyMeasurementInput) {
+    const numericFields = [
+      body.waistCm,
+      body.hipCm,
+      body.chestCm,
+      body.armCm,
+      body.thighCm,
+      body.bodyFatPct,
+      body.muscleMassKg,
+    ];
+    if (
+      !numericFields.some((v) => typeof v === 'number' && Number.isFinite(v))
+    ) {
+      throw new BadRequestException(
+        'at least one measurement value is required',
+      );
+    }
+    const dateKey = new Date().toISOString().slice(0, 10);
+    return this.prisma.bodyMeasurement.create({
+      data: {
+        userId: user.id,
+        waistCm: body.waistCm,
+        hipCm: body.hipCm,
+        chestCm: body.chestCm,
+        armCm: body.armCm,
+        thighCm: body.thighCm,
+        bodyFatPct: body.bodyFatPct,
+        muscleMassKg: body.muscleMassKg,
+        notes: body.notes,
+        dateKey,
+      },
+    });
+  }
+
+  async removeBodyMeasurement(user: AuthUser, id: string) {
+    const measurement = await this.prisma.bodyMeasurement.findFirst({
+      where: { id, userId: user.id },
+    });
+    if (!measurement) throw new NotFoundException('Measurement not found');
+    await this.prisma.bodyMeasurement.delete({ where: { id } });
     return { id };
   }
 }
