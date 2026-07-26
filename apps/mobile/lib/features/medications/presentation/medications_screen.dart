@@ -113,7 +113,7 @@ class _MedicationsScreenState extends ConsumerState<MedicationsScreen> {
                 const SizedBox(height: 4),
                 const Text(
                   'A personal reminder log for what you take and when.',
-                  style: TextStyle(color: AppColors.muted),
+                  style: TextStyle(color: AppColors.mutedOnDark),
                 ),
                 const SizedBox(height: 16),
                 GlassCard(
@@ -226,13 +226,13 @@ class _MedicationsScreenState extends ConsumerState<MedicationsScreen> {
                                   : Text(
                                       subtitle,
                                       style: const TextStyle(
-                                        color: AppColors.muted,
+                                        color: AppColors.mutedOnDark,
                                       ),
                                     ),
                               trailing: IconButton(
                                 icon: const Icon(
                                   Icons.close,
-                                  color: AppColors.muted,
+                                  color: AppColors.mutedOnDark,
                                 ),
                                 onPressed: busy ? null : () => _remove(id),
                               ),
@@ -250,7 +250,7 @@ class _MedicationsScreenState extends ConsumerState<MedicationsScreen> {
                   data: (data) => Text(
                     '${data['disclaimer']}',
                     style: const TextStyle(
-                      color: AppColors.muted,
+                      color: AppColors.mutedOnDark,
                       fontSize: 12,
                     ),
                   ),

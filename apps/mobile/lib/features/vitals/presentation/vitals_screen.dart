@@ -54,7 +54,7 @@ class _VitalsScreenState extends State<VitalsScreen>
                     const SizedBox(height: 4),
                     const Text(
                       'A personal trend log — not a diagnosis.',
-                      style: TextStyle(color: AppColors.muted),
+                      style: TextStyle(color: AppColors.mutedOnDark),
                     ),
                   ],
                 ),
@@ -62,7 +62,7 @@ class _VitalsScreenState extends State<VitalsScreen>
               TabBar(
                 controller: _tabs,
                 labelColor: AppColors.lime,
-                unselectedLabelColor: AppColors.muted,
+                unselectedLabelColor: AppColors.mutedOnDark,
                 indicatorColor: AppColors.lime,
                 tabs: const [
                   Tab(text: 'Blood pressure'),
@@ -252,11 +252,11 @@ class _BloodPressureTabState extends ConsumerState<_BloodPressureTab> {
                               pulse == null
                                   ? '${r['recordedAt']}'
                                   : '$pulse bpm · ${r['recordedAt']}',
-                              style: const TextStyle(color: AppColors.muted),
+                              style: const TextStyle(color: AppColors.mutedOnDark),
                             ),
                             trailing: IconButton(
                               icon: const Icon(Icons.close,
-                                  color: AppColors.muted),
+                                  color: AppColors.mutedOnDark),
                               onPressed: _busyId == id
                                   ? null
                                   : () => _remove(id),
@@ -269,7 +269,7 @@ class _BloodPressureTabState extends ConsumerState<_BloodPressureTab> {
                   Text(
                     '${payload['disclaimer']}',
                     style: const TextStyle(
-                      color: AppColors.muted,
+                      color: AppColors.mutedOnDark,
                       fontSize: 12,
                     ),
                   ),
@@ -443,11 +443,11 @@ class _BloodSugarTabState extends ConsumerState<_BloodSugarTab> {
                             ),
                             subtitle: Text(
                               '${r['context'] ?? 'random'} · ${r['recordedAt']}',
-                              style: const TextStyle(color: AppColors.muted),
+                              style: const TextStyle(color: AppColors.mutedOnDark),
                             ),
                             trailing: IconButton(
                               icon: const Icon(Icons.close,
-                                  color: AppColors.muted),
+                                  color: AppColors.mutedOnDark),
                               onPressed: _busyId == id
                                   ? null
                                   : () => _remove(id),
@@ -460,7 +460,7 @@ class _BloodSugarTabState extends ConsumerState<_BloodSugarTab> {
                   Text(
                     '${payload['disclaimer']}',
                     style: const TextStyle(
-                      color: AppColors.muted,
+                      color: AppColors.mutedOnDark,
                       fontSize: 12,
                     ),
                   ),

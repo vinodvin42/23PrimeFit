@@ -249,7 +249,7 @@ class _SessionScreenState extends ConsumerState<SessionScreen> {
                       Text(
                         '$_error',
                         textAlign: TextAlign.center,
-                        style: const TextStyle(color: AppColors.muted),
+                        style: const TextStyle(color: AppColors.mutedOnDark),
                       ),
                       const SizedBox(height: 16),
                       FilledButton(
@@ -310,7 +310,7 @@ class _SessionScreenState extends ConsumerState<SessionScreen> {
               children: [
                 Text(
                   '${session.exercises.length} exercises · ${session.status.replaceAll('_', ' ')}',
-                  style: const TextStyle(color: AppColors.muted, fontSize: 13),
+                  style: const TextStyle(color: AppColors.mutedOnDark, fontSize: 13),
                 ),
                 const SizedBox(height: 10),
                 ClipRRect(
@@ -439,7 +439,7 @@ class _SessionScreenState extends ConsumerState<SessionScreen> {
                                     Text(
                                       'Target ${item.sets} × ${item.reps} · rest ${item.restSec}s',
                                       style: const TextStyle(
-                                        color: AppColors.muted,
+                                        color: AppColors.mutedOnDark,
                                         fontSize: 12,
                                         height: 1.3,
                                       ),
@@ -457,7 +457,7 @@ class _SessionScreenState extends ConsumerState<SessionScreen> {
                                 child: Text(
                                   'SET',
                                   style: TextStyle(
-                                    color: AppColors.muted,
+                                    color: AppColors.mutedOnDark,
                                     fontSize: 11,
                                     fontWeight: FontWeight.w700,
                                     letterSpacing: 0.4,
@@ -468,7 +468,7 @@ class _SessionScreenState extends ConsumerState<SessionScreen> {
                                 child: Text(
                                   'REPS',
                                   style: TextStyle(
-                                    color: AppColors.muted,
+                                    color: AppColors.mutedOnDark,
                                     fontSize: 11,
                                     fontWeight: FontWeight.w700,
                                     letterSpacing: 0.4,
@@ -480,7 +480,7 @@ class _SessionScreenState extends ConsumerState<SessionScreen> {
                                 child: Text(
                                   'KG',
                                   style: TextStyle(
-                                    color: AppColors.muted,
+                                    color: AppColors.mutedOnDark,
                                     fontSize: 11,
                                     fontWeight: FontWeight.w700,
                                     letterSpacing: 0.4,
@@ -580,7 +580,7 @@ class _SessionScreenState extends ConsumerState<SessionScreen> {
                                               : Icons.check_circle_outline,
                                           color: rowDone
                                               ? AppColors.lime
-                                              : AppColors.muted,
+                                              : AppColors.mutedOnDark,
                                         ),
                                       ),
                                       IconButton(
@@ -600,7 +600,7 @@ class _SessionScreenState extends ConsumerState<SessionScreen> {
                                           Icons.block,
                                           color: rowSkipped
                                               ? AppColors.danger
-                                              : AppColors.muted,
+                                              : AppColors.mutedOnDark,
                                         ),
                                       ),
                                     ],

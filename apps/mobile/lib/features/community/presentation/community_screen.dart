@@ -111,7 +111,7 @@ class _CommunityScreenState extends ConsumerState<CommunityScreen> {
                 if (rows.isEmpty)
                   const Text(
                     'No one has joined yet — be the first!',
-                    style: TextStyle(color: AppColors.muted),
+                    style: TextStyle(color: AppColors.mutedOnDark),
                   )
                 else
                   ...rows.map(
@@ -178,7 +178,7 @@ class _CommunityScreenState extends ConsumerState<CommunityScreen> {
                 const SizedBox(height: 4),
                 const Text(
                   'Join challenges, climb the leaderboard, keep your streak.',
-                  style: TextStyle(color: AppColors.muted),
+                  style: TextStyle(color: AppColors.mutedOnDark),
                 ),
                 const SizedBox(height: 16),
                 if (_loading)
@@ -317,7 +317,7 @@ class _CommunityScreenState extends ConsumerState<CommunityScreen> {
                                 Text(
                                   '${c['participantCount']} joined',
                                   style: const TextStyle(
-                                    color: AppColors.muted,
+                                    color: AppColors.mutedOnDark,
                                     fontSize: 12,
                                   ),
                                 ),
@@ -350,7 +350,7 @@ class _CommunityScreenState extends ConsumerState<CommunityScreen> {
                                     ? 'Completed 🎉'
                                     : '$progressValue / $target',
                                 style:
-                                    const TextStyle(color: AppColors.muted),
+                                    const TextStyle(color: AppColors.mutedOnDark),
                               ),
                             ],
                             const SizedBox(height: 10),

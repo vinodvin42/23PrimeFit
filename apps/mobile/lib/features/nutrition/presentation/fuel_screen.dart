@@ -56,7 +56,7 @@ class _FuelScreenState extends ConsumerState<FuelScreen>
                   const SizedBox(height: 4),
                   const Text(
                     'Log meals, scan barcodes, and follow your meal plan.',
-                    style: TextStyle(color: AppColors.muted),
+                    style: TextStyle(color: AppColors.mutedOnDark),
                   ),
                 ],
               ),
@@ -65,7 +65,7 @@ class _FuelScreenState extends ConsumerState<FuelScreen>
               controller: _tabs,
               isScrollable: true,
               labelColor: AppColors.lime,
-              unselectedLabelColor: AppColors.muted,
+              unselectedLabelColor: AppColors.mutedOnDark,
               indicatorColor: AppColors.lime,
               tabs: const [
                 Tab(text: 'Today'),
@@ -195,7 +195,7 @@ class _TodayTab extends ConsumerWidget {
                           ),
                           subtitle: Text(
                             log.mealType,
-                            style: const TextStyle(color: AppColors.muted),
+                            style: const TextStyle(color: AppColors.mutedOnDark),
                           ),
                           trailing: Text(
                             '${log.calories.round()} kcal',
@@ -264,7 +264,7 @@ class _HydrationCardState extends ConsumerState<_HydrationCard> {
                 error: (_, __) => const SizedBox.shrink(),
                 data: (data) => Text(
                   '${data.totalMl} / ${data.targetMl} ml',
-                  style: const TextStyle(color: AppColors.muted),
+                  style: const TextStyle(color: AppColors.mutedOnDark),
                 ),
               ),
             ],
@@ -502,7 +502,7 @@ class _AddFoodTabState extends ConsumerState<_AddFoodTab> {
             title: Text(item.name, style: const TextStyle(color: AppColors.white)),
             subtitle: Text(
               '${item.brand ?? item.source ?? 'food'} · ${item.calories.round()} kcal · ${item.servingLabel}',
-              style: const TextStyle(color: AppColors.muted),
+              style: const TextStyle(color: AppColors.mutedOnDark),
             ),
             trailing: IconButton(
               icon: const Icon(Icons.add_circle, color: AppColors.lime),
@@ -595,7 +595,7 @@ class _RecipesTabState extends ConsumerState<_RecipesTab> {
                             ),
                             subtitle: Text(
                               '${p.dailyKcal} kcal/day · ${p.description}',
-                              style: const TextStyle(color: AppColors.muted),
+                              style: const TextStyle(color: AppColors.mutedOnDark),
                             ),
                             trailing: TextButton(
                               onPressed: () async {
@@ -624,7 +624,7 @@ class _RecipesTabState extends ConsumerState<_RecipesTab> {
           _remoteSource.isEmpty
               ? 'Spoonacular when keyed, else seeded fallback.'
               : 'Source: $_remoteSource',
-          style: const TextStyle(color: AppColors.muted, fontSize: 12),
+          style: const TextStyle(color: AppColors.mutedOnDark, fontSize: 12),
         ),
         const SizedBox(height: 8),
         Row(
@@ -664,7 +664,7 @@ class _RecipesTabState extends ConsumerState<_RecipesTab> {
                     if (r['servings'] != null) '${r['servings']} servings',
                     if (r['calories'] != null) '${r['calories']} kcal',
                   ].join(' · '),
-                  style: const TextStyle(color: AppColors.muted),
+                  style: const TextStyle(color: AppColors.mutedOnDark),
                 ),
                 trailing: TextButton(
                   onPressed: () async {
@@ -710,7 +710,7 @@ class _RecipesTabState extends ConsumerState<_RecipesTab> {
                               ),
                               child: ExpansionTile(
                                 iconColor: AppColors.lime,
-                                collapsedIconColor: AppColors.muted,
+                                collapsedIconColor: AppColors.mutedOnDark,
                                 title: Text(
                                   r.title,
                                   style: const TextStyle(
@@ -720,7 +720,7 @@ class _RecipesTabState extends ConsumerState<_RecipesTab> {
                                 ),
                                 subtitle: Text(
                                   '${r.calories.round()} kcal · ${r.proteinG.round()}g protein · ${r.prepMin + r.cookMin} min',
-                                  style: const TextStyle(color: AppColors.muted),
+                                  style: const TextStyle(color: AppColors.mutedOnDark),
                                 ),
                                 children: [
                                   Padding(
@@ -1004,11 +1004,11 @@ class _SupplementsTabState extends ConsumerState<_SupplementsTab> {
                             : Text(
                                 subtitle,
                                 style:
-                                    const TextStyle(color: AppColors.muted),
+                                    const TextStyle(color: AppColors.mutedOnDark),
                               ),
                         trailing: IconButton(
                           icon: const Icon(Icons.close,
-                              color: AppColors.muted),
+                              color: AppColors.mutedOnDark),
                           onPressed: busy ? null : () => _remove(id),
                         ),
                       ),
@@ -1124,7 +1124,7 @@ class _FastingTabState extends ConsumerState<_FastingTab> {
                         if (session == null) ...[
                           Text(
                             'Target: ${_targetHours.toStringAsFixed(0)}h',
-                            style: const TextStyle(color: AppColors.muted),
+                            style: const TextStyle(color: AppColors.mutedOnDark),
                           ),
                           Slider(
                             value: _targetHours,
@@ -1152,7 +1152,7 @@ class _FastingTabState extends ConsumerState<_FastingTab> {
                   Text(
                     '${data['disclaimer']}',
                     style: const TextStyle(
-                      color: AppColors.muted,
+                      color: AppColors.mutedOnDark,
                       fontSize: 12,
                     ),
                   ),
@@ -1359,11 +1359,11 @@ class _ShoppingListTabState extends ConsumerState<_ShoppingListTab> {
                               : Text(
                                   quantity,
                                   style:
-                                      const TextStyle(color: AppColors.muted),
+                                      const TextStyle(color: AppColors.mutedOnDark),
                                 ),
                           trailing: IconButton(
                             icon: const Icon(Icons.close,
-                                color: AppColors.muted),
+                                color: AppColors.mutedOnDark),
                             onPressed: busy ? null : () => _remove(id),
                           ),
                         ),
