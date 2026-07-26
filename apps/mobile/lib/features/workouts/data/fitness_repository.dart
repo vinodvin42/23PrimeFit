@@ -267,6 +267,18 @@ class FitnessRepository {
     await _dio.delete('/nutrition/logs/$id');
   }
 
+  Future<HydrationToday> hydrationToday() async {
+    final res = await _dio.get<Map<String, dynamic>>('/nutrition/hydration/today');
+    return HydrationToday.fromJson(res.data!);
+  }
+
+  Future<void> logHydration(int amountMl) async {
+    await _dio.post<Map<String, dynamic>>(
+      '/nutrition/hydration',
+      data: {'amountMl': amountMl},
+    );
+  }
+
   Future<List<RecipeItem>> listRecipes([String? q]) async {
     final res = await _dio.get<List<dynamic>>(
       '/nutrition/recipes',
@@ -638,6 +650,11 @@ final myWorkoutsProvider = FutureProvider.autoDispose<MyWorkouts>((ref) {
 final nutritionTodayProvider =
     FutureProvider.autoDispose<NutritionToday>((ref) {
   return ref.watch(fitnessRepositoryProvider).nutritionToday();
+});
+
+final hydrationTodayProvider =
+    FutureProvider.autoDispose<HydrationToday>((ref) {
+  return ref.watch(fitnessRepositoryProvider).hydrationToday();
 });
 
 final recoveryTodayProvider = FutureProvider.autoDispose<RecoveryToday>((ref) {

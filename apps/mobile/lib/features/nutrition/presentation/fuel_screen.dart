@@ -146,6 +146,8 @@ class _TodayTab extends ConsumerWidget {
                     ),
                   ),
                   const SizedBox(height: 20),
+                  const _HydrationCard(),
+                  const SizedBox(height: 20),
                   const Text("Today's log", style: TextStyle(color: AppColors.white, fontSize: 20, fontWeight: FontWeight.w700)),
                   const SizedBox(height: 8),
                   if (data.logs.isEmpty)
@@ -198,6 +200,102 @@ class _TodayTab extends ConsumerWidget {
                 ],
               );
             },
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _HydrationCard extends ConsumerStatefulWidget {
+  const _HydrationCard();
+
+  @override
+  ConsumerState<_HydrationCard> createState() => _HydrationCardState();
+}
+
+class _HydrationCardState extends ConsumerState<_HydrationCard> {
+  bool _busy = false;
+
+  Future<void> _add(int ml) async {
+    setState(() => _busy = true);
+    try {
+      await ref.read(fitnessRepositoryProvider).logHydration(ml);
+      ref.invalidate(hydrationTodayProvider);
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text('$e')));
+      }
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final hydration = ref.watch(hydrationTodayProvider);
+    return GlassCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Icon(Icons.water_drop, color: AppColors.lime),
+              const SizedBox(width: 8),
+              const Text(
+                'Hydration',
+                style: TextStyle(
+                  color: AppColors.white,
+                  fontWeight: FontWeight.w700,
+                  fontSize: 16,
+                ),
+              ),
+              const Spacer(),
+              hydration.when(
+                loading: () => const SizedBox.shrink(),
+                error: (_, __) => const SizedBox.shrink(),
+                data: (data) => Text(
+                  '${data.totalMl} / ${data.targetMl} ml',
+                  style: const TextStyle(color: AppColors.muted),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          hydration.when(
+            loading: () =>
+                const LinearProgressIndicator(color: AppColors.lime),
+            error: (e, _) =>
+                Text('$e', style: const TextStyle(color: AppColors.danger)),
+            data: (data) {
+              final ratio = data.targetMl > 0
+                  ? (data.totalMl / data.targetMl).clamp(0, 1).toDouble()
+                  : 0.0;
+              return ClipRRect(
+                borderRadius: BorderRadius.circular(8),
+                child: LinearProgressIndicator(
+                  value: ratio,
+                  minHeight: 10,
+                  backgroundColor: AppColors.card,
+                  color: AppColors.lime,
+                ),
+              );
+            },
+          ),
+          const SizedBox(height: 10),
+          Row(
+            children: [
+              OutlinedButton(
+                onPressed: _busy ? null : () => _add(250),
+                child: const Text('+250 ml'),
+              ),
+              const SizedBox(width: 8),
+              OutlinedButton(
+                onPressed: _busy ? null : () => _add(500),
+                child: const Text('+500 ml'),
+              ),
+            ],
           ),
         ],
       ),

@@ -145,6 +145,7 @@ model User {
   postureAnalyses     PostureAnalysis[]
   challengeParticipants ChallengeParticipant[]
   achievements          Achievement[]
+  hydrationLogs         HydrationLog[]
 }
 
 model Profile {
@@ -1312,4 +1313,17 @@ model Achievement {
 
   @@unique([tenantId, userId, code])
   @@index([tenantId, userId])
+}
+
+/// Nutrition: daily water intake logging (mirrors NutritionLog's user+dateKey scoping).
+model HydrationLog {
+  id       String   @id @default(cuid())
+  userId   String
+  amountMl Int
+  loggedAt DateTime @default(now())
+  dateKey  String
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, dateKey])
 }

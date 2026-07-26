@@ -230,6 +230,20 @@ class NutritionToday {
   }
 }
 
+class HydrationToday {
+  const HydrationToday({required this.totalMl, required this.targetMl});
+
+  final int totalMl;
+  final int targetMl;
+
+  factory HydrationToday.fromJson(Map<String, dynamic> json) {
+    return HydrationToday(
+      totalMl: (json['totalMl'] as num?)?.toInt() ?? 0,
+      targetMl: (json['targetMl'] as num?)?.toInt() ?? 2500,
+    );
+  }
+}
+
 class NutritionLogItem {
   const NutritionLogItem({
     required this.id,

@@ -320,6 +320,60 @@ export class NutritionService {
     };
   }
 
+  private hydrationTargetMl(user: AuthUser) {
+    const weightKg = user.profile?.weightKg;
+    if (weightKg && weightKg > 0) {
+      return Math.round(weightKg * 33);
+    }
+    return 2500;
+  }
+
+  async hydrationToday(user: AuthUser) {
+    const dateKey = new Date().toISOString().slice(0, 10);
+    const logs = await this.prisma.hydrationLog.findMany({
+      where: { userId: user.id, dateKey },
+      orderBy: { loggedAt: 'asc' },
+    });
+    const totalMl = logs.reduce((sum, log) => sum + log.amountMl, 0);
+    return {
+      dateKey,
+      totalMl,
+      targetMl: this.hydrationTargetMl(user),
+      logs,
+    };
+  }
+
+  async logHydration(user: AuthUser, amountMl: number) {
+    if (!Number.isFinite(amountMl) || amountMl <= 0) {
+      throw new BadRequestException('amountMl must be a positive number');
+    }
+    const dateKey = new Date().toISOString().slice(0, 10);
+    return this.prisma.hydrationLog.create({
+      data: { userId: user.id, amountMl: Math.round(amountMl), dateKey },
+    });
+  }
+
+  async hydrationHistory(user: AuthUser, days = 7) {
+    const from = new Date(Date.now() - days * 86400000)
+      .toISOString()
+      .slice(0, 10);
+    const logs = await this.prisma.hydrationLog.findMany({
+      where: { userId: user.id, dateKey: { gte: from } },
+      orderBy: { dateKey: 'asc' },
+    });
+    const byDate = new Map<string, number>();
+    for (const log of logs) {
+      byDate.set(log.dateKey, (byDate.get(log.dateKey) ?? 0) + log.amountMl);
+    }
+    return {
+      targetMl: this.hydrationTargetMl(user),
+      days: Array.from(byDate.entries()).map(([dateKey, totalMl]) => ({
+        dateKey,
+        totalMl,
+      })),
+    };
+  }
+
   async addLog(
     user: AuthUser,
     body: { foodItemId: string; mealType: string; servings?: number },

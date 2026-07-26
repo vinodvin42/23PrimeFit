@@ -53,6 +53,27 @@ export class NutritionController {
     return this.nutrition.deleteLog(user, id);
   }
 
+  @Get('hydration/today')
+  hydrationToday(@CurrentUser() user: AuthUser) {
+    return this.nutrition.hydrationToday(user);
+  }
+
+  @Post('hydration')
+  logHydration(
+    @CurrentUser() user: AuthUser,
+    @Body() body: { amountMl: number },
+  ) {
+    return this.nutrition.logHydration(user, body.amountMl);
+  }
+
+  @Get('hydration/history')
+  hydrationHistory(
+    @CurrentUser() user: AuthUser,
+    @Query('days') days?: string,
+  ) {
+    return this.nutrition.hydrationHistory(user, days ? Number(days) : 7);
+  }
+
   @Get('recipes')
   recipes(@Query('q') q?: string) {
     return this.nutrition.listRecipes(q);
