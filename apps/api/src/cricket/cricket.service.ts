@@ -1,7 +1,4 @@
-import {
-  Injectable,
-  NotFoundException,
-} from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import {
   CricketRole,
   CricketSessionKind,
@@ -166,10 +163,11 @@ export class CricketService {
       load,
       signals: signals.map((s) => ({
         ...s,
-        explain: JSON.parse(s.explainJson || '{}'),
+        explain: JSON.parse(s.explainJson || '{}') as Record<string, unknown>,
       })),
       recentSessions: sessions.slice(0, 8),
-      disclaimer: 'Cricket load analytics are wellness guidance, not selection science.',
+      disclaimer:
+        'Cricket load analytics are wellness guidance, not selection science.',
     };
   }
 

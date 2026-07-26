@@ -1,4 +1,8 @@
-import type { Tenant, TenantMembership, TenantMembershipRole } from '@prisma/client';
+import type {
+  Tenant,
+  TenantMembership,
+  TenantMembershipRole,
+} from '@prisma/client';
 
 export const TENANT_HEADER = 'x-tenant-id';
 

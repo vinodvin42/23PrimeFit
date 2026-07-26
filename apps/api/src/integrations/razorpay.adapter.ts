@@ -72,10 +72,7 @@ export class RazorpayAdapter {
       .update(rawBody)
       .digest('hex');
     try {
-      return timingSafeEqual(
-        Buffer.from(expected),
-        Buffer.from(signature),
-      );
+      return timingSafeEqual(Buffer.from(expected), Buffer.from(signature));
     } catch {
       return false;
     }

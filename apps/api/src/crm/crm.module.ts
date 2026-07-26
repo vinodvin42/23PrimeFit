@@ -16,6 +16,7 @@ import { CurrentUser, FirebaseAuthGuard } from '../auth/auth.decorators';
 import type { AuthUser } from '../auth/auth-user';
 import { PrismaService } from '../prisma/prisma.service';
 import { TENANT_HEADER } from '../tenants/tenant-context';
+import { TenantsModule } from '../tenants/tenants.module';
 import { TenantsService } from '../tenants/tenants.service';
 import { Module } from '@nestjs/common';
 
@@ -148,11 +149,7 @@ export class CrmService {
     });
   }
 
-  async markInvoicePaid(
-    user: AuthUser,
-    invoiceId: string,
-    tenant?: string,
-  ) {
+  async markInvoicePaid(user: AuthUser, invoiceId: string, tenant?: string) {
     const tenantId = await this.tenantId(user, tenant);
     const invoice = await this.prisma.tenantInvoice.findFirst({
       where: { id: invoiceId, tenantId },

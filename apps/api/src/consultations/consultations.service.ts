@@ -128,11 +128,7 @@ export class ConsultationsService {
     };
   }
 
-  async updateStatus(
-    user: AuthUser,
-    id: string,
-    status: ConsultationStatus,
-  ) {
+  async updateStatus(user: AuthUser, id: string, status: ConsultationStatus) {
     const consult = await this.prisma.consultation.findUnique({
       where: { id },
     });
@@ -176,7 +172,8 @@ export class ConsultationsService {
     const payment = await this.prisma.payment.upsert({
       where: { consultationId: id },
       update: {
-        status: order.mode === 'demo' ? PaymentStatus.PAID : PaymentStatus.PENDING,
+        status:
+          order.mode === 'demo' ? PaymentStatus.PAID : PaymentStatus.PENDING,
         externalId: order.orderId,
         amountInr: consult.amountInr,
       },
@@ -186,7 +183,8 @@ export class ConsultationsService {
         provider: 'razorpay',
         amountInr: consult.amountInr,
         currency: 'INR',
-        status: order.mode === 'demo' ? PaymentStatus.PAID : PaymentStatus.PENDING,
+        status:
+          order.mode === 'demo' ? PaymentStatus.PAID : PaymentStatus.PENDING,
         externalId: order.orderId,
       },
     });

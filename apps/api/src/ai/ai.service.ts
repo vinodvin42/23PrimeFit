@@ -118,7 +118,7 @@ export class AiService {
     const updated = await this.prisma.aiInsight.update({
       where: { id },
       data: {
-        status: body.status as AiInsightStatus,
+        status: body.status,
         coachEditedBody: body.editedBody ?? insight.coachEditedBody,
         reviewedById: coach.id,
         reviewedAt: new Date(),
@@ -381,7 +381,11 @@ export class AiService {
     const sleep = recovery?.sleepHours ?? 7;
     if (sleep >= 7.5) {
       delta -= 1.2;
-      factors.push({ key: 'sleep', impact: -1.2, note: 'Strong sleep duration' });
+      factors.push({
+        key: 'sleep',
+        impact: -1.2,
+        note: 'Strong sleep duration',
+      });
     } else if (sleep < 6.5) {
       delta += 1.5;
       factors.push({ key: 'sleep', impact: 1.5, note: 'Sleep under 6.5h' });

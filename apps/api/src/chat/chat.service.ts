@@ -104,7 +104,11 @@ export class ChatService {
       include: { sender: true },
     });
 
-    return { thread, messages, provider: this.stream.enabled ? 'stream' : 'postgres' };
+    return {
+      thread,
+      messages,
+      provider: this.stream.enabled ? 'stream' : 'postgres',
+    };
   }
 
   async sendMessage(user: AuthUser, threadId: string, body: string) {

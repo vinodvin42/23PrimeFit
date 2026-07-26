@@ -44,7 +44,7 @@ export class ProgressService {
 
     if (body.imageBase64) {
       const raw = body.imageBase64.includes(',')
-        ? body.imageBase64.split(',')[1]!
+        ? body.imageBase64.split(',')[1]
         : body.imageBase64;
       buffer = Buffer.from(raw, 'base64');
       if (!body.contentType) {

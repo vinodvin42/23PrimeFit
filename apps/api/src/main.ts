@@ -43,10 +43,10 @@ async function bootstrap() {
 
   const port = Number(process.env.PORT ?? 3001);
   await app.listen(port);
-  // eslint-disable-next-line no-console
+
   console.log(
     `23PrimeFit API listening on http://localhost:${port}/api` +
       (sentryOn ? ' (Sentry on)' : ''),
   );
 }
-bootstrap();
+void bootstrap();

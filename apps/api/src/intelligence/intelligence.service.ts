@@ -75,10 +75,7 @@ export class IntelligenceService implements OnModuleInit {
       userId,
       'injury_risk_insights',
     );
-    const predOk = await this.consent.hasGranted(
-      userId,
-      'predictive_insights',
-    );
+    const predOk = await this.consent.hasGranted(userId, 'predictive_insights');
     const cricketOk = await this.consent.hasGranted(
       userId,
       'cricket_analytics',
@@ -123,7 +120,9 @@ export class IntelligenceService implements OnModuleInit {
     const signals: RuleSignal[] = [];
     if (injuryAllowed) signals.push(...runInjuryRules(f));
     if (cricketOk) signals.push(...runCricketRules(f));
-    let predictions = [] as ReturnType<typeof runPredictiveRules>['predictions'];
+    let predictions = [] as ReturnType<
+      typeof runPredictiveRules
+    >['predictions'];
     if (predAllowed) {
       const pred = runPredictiveRules(f);
       signals.push(...pred.signals);
@@ -270,11 +269,11 @@ export class IntelligenceService implements OnModuleInit {
         'Wellness guidance only — not medical diagnosis or injury prediction.',
       signals: signals.map((s) => ({
         ...s,
-        explain: JSON.parse(s.explainJson || '{}'),
+        explain: JSON.parse(s.explainJson || '{}') as Record<string, unknown>,
       })),
       predictions: predictions.map((p) => ({
         ...p,
-        drivers: JSON.parse(p.driversJson || '{}'),
+        drivers: JSON.parse(p.driversJson || '{}') as Record<string, unknown>,
       })),
     };
   }
@@ -282,8 +281,7 @@ export class IntelligenceService implements OnModuleInit {
   async history(user: AuthUser, from?: string, to?: string) {
     const toKey = to ?? new Date().toISOString().slice(0, 10);
     const fromKey =
-      from ??
-      new Date(Date.now() - 14 * 86400000).toISOString().slice(0, 10);
+      from ?? new Date(Date.now() - 14 * 86400000).toISOString().slice(0, 10);
     const signals = await this.prisma.healthSignal.findMany({
       where: { userId: user.id, dateKey: { gte: fromKey, lte: toKey } },
       orderBy: { dateKey: 'asc' },
@@ -293,7 +291,7 @@ export class IntelligenceService implements OnModuleInit {
       to: toKey,
       signals: signals.map((s) => ({
         ...s,
-        explain: JSON.parse(s.explainJson || '{}'),
+        explain: JSON.parse(s.explainJson || '{}') as Record<string, unknown>,
       })),
     };
   }

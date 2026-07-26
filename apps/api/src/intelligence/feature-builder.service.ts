@@ -44,7 +44,11 @@ export type DailyFeatures = {
     rpe: number | null;
   }>;
   cricketRole: string | null;
-  nutrition7: Array<{ calories: number; target: number | null; dateKey: string }>;
+  nutrition7: Array<{
+    calories: number;
+    target: number | null;
+    dateKey: string;
+  }>;
   plannedSessions3d: number;
   missedSessions7: number;
   featureHash: string;
@@ -60,7 +64,10 @@ function dateKeyOffset(base: string, daysBack: number) {
 export class FeatureBuilderService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async build(userId: string, dateKey = new Date().toISOString().slice(0, 10)): Promise<DailyFeatures> {
+  async build(
+    userId: string,
+    dateKey = new Date().toISOString().slice(0, 10),
+  ): Promise<DailyFeatures> {
     const from28 = dateKeyOffset(dateKey, 27);
     const from7 = dateKeyOffset(dateKey, 6);
     const to3 = dateKeyOffset(dateKey, -2);
@@ -73,7 +80,10 @@ export class FeatureBuilderService {
           orderBy: { dateKey: 'asc' },
         }),
         this.prisma.workoutSession.findMany({
-          where: { userId, createdAt: { gte: new Date(`${from7}T00:00:00.000Z`) } },
+          where: {
+            userId,
+            createdAt: { gte: new Date(`${from7}T00:00:00.000Z`) },
+          },
           orderBy: { createdAt: 'asc' },
           take: 40,
         }),
@@ -83,7 +93,10 @@ export class FeatureBuilderService {
         }),
         this.prisma.cricketAthleteProfile.findUnique({ where: { userId } }),
         this.prisma.nutritionLog.findMany({
-          where: { userId, loggedAt: { gte: new Date(`${from7}T00:00:00.000Z`) } },
+          where: {
+            userId,
+            loggedAt: { gte: new Date(`${from7}T00:00:00.000Z`) },
+          },
           include: { food: true },
           take: 200,
         }),
@@ -125,7 +138,10 @@ export class FeatureBuilderService {
       rpe: c.rpe,
     }));
 
-    const calByDay = new Map<string, { calories: number; target: number | null }>();
+    const calByDay = new Map<
+      string,
+      { calories: number; target: number | null }
+    >();
     for (const log of nutrition) {
       const dk = log.loggedAt.toISOString().slice(0, 10);
       const prev = calByDay.get(dk) ?? { calories: 0, target: null };
@@ -133,7 +149,9 @@ export class FeatureBuilderService {
       calByDay.set(dk, prev);
     }
 
-    const missedSessions7 = sessions7.filter((s) => s.status === 'SKIPPED').length;
+    const missedSessions7 = sessions7.filter(
+      (s) => s.status === 'SKIPPED',
+    ).length;
     const plannedSessions3d = await this.prisma.workoutSession.count({
       where: {
         userId,

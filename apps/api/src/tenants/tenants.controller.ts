@@ -55,10 +55,7 @@ export class TenantsController {
   }
 
   @Post(':tenantId/activate-subscription')
-  activate(
-    @CurrentUser() user: AuthUser,
-    @Param('tenantId') tenantId: string,
-  ) {
+  activate(@CurrentUser() user: AuthUser, @Param('tenantId') tenantId: string) {
     return this.tenants.activateSubscriptionDemo(user, tenantId);
   }
 
@@ -72,10 +69,7 @@ export class TenantsController {
   }
 
   @Get(':tenantId/usage')
-  usage(
-    @CurrentUser() user: AuthUser,
-    @Param('tenantId') tenantId: string,
-  ) {
+  usage(@CurrentUser() user: AuthUser, @Param('tenantId') tenantId: string) {
     return this.tenants.usageSummary(user, tenantId);
   }
 }

@@ -21,10 +21,7 @@ export class ChatController {
   }
 
   @Post('threads')
-  ensure(
-    @CurrentUser() user: AuthUser,
-    @Body() body: { clientId?: string },
-  ) {
+  ensure(@CurrentUser() user: AuthUser, @Body() body: { clientId?: string }) {
     return this.chat.ensureThread(user, body.clientId);
   }
 

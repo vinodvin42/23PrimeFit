@@ -1,7 +1,4 @@
-import {
-  ForbiddenException,
-  Injectable,
-} from '@nestjs/common';
+import { ForbiddenException, Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '../prisma/prisma.service';
 import type { AuthUser } from '../auth/auth-user';
@@ -165,7 +162,8 @@ export class RecoveryService {
         {
           id: 'apple_health',
           label: 'Apple Health / Watch',
-          status: connections.find((c) => c.provider === 'apple_health')?.status,
+          status: connections.find((c) => c.provider === 'apple_health')
+            ?.status,
         },
         {
           id: 'health_connect',
@@ -374,11 +372,9 @@ export class RecoveryService {
         metaJson,
       },
     });
-    const { accessToken: _a, refreshToken: _r, ...safe } = result as {
-      accessToken?: string;
-      refreshToken?: string | null;
-      [k: string]: unknown;
-    };
+    const safe = { ...result } as Record<string, unknown>;
+    delete safe.accessToken;
+    delete safe.refreshToken;
     return { ...safe, connected };
   }
 }

@@ -7,10 +7,7 @@ import {
 } from '@nestjs/common';
 import { TenantsService } from './tenants.service';
 import type { AuthUser } from '../auth/auth-user';
-import {
-  ActiveTenantContext,
-  TENANT_HEADER,
-} from './tenant-context';
+import { ActiveTenantContext, TENANT_HEADER } from './tenant-context';
 
 @Injectable()
 export class TenantGuard implements CanActivate {

@@ -16,10 +16,10 @@ export function assertSameTenant(
   }
 }
 
-export async function denyCrossTenantAccess(
+export function denyCrossTenantAccess(
   tenants: TenantsService,
   ctx: ActiveTenantContext,
   resourceTenantId: string | null | undefined,
 ) {
-  await tenants.assertCanAccessTenantResource(ctx, resourceTenantId);
+  tenants.assertCanAccessTenantResource(ctx, resourceTenantId);
 }

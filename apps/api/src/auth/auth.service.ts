@@ -69,7 +69,7 @@ export class AuthService implements OnModuleInit {
       return this.upsertFromClaims({
         uid: decoded.uid,
         email: decoded.email,
-        name: decoded.name,
+        name: decoded.name as string | undefined,
       });
     } catch {
       throw new UnauthorizedException('Invalid or expired token');

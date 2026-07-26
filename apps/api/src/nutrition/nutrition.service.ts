@@ -79,7 +79,7 @@ export class NutritionService {
       this.logger.warn(`Open Food Facts search failed: ${String(err)}`);
     }
 
-    let nxItems: Awaited<ReturnType<NutritionService['upsertRemoteFood']>>[] =
+    const nxItems: Awaited<ReturnType<NutritionService['upsertRemoteFood']>>[] =
       [];
     let nxSource = '';
     try {

@@ -24,7 +24,9 @@ export class PaymentsWebhookController {
   ) {
     const raw =
       req.rawBody?.toString('utf8') ??
-      (typeof req.body === 'string' ? req.body : JSON.stringify(req.body ?? {}));
+      (typeof req.body === 'string'
+        ? req.body
+        : JSON.stringify(req.body ?? {}));
     if (
       !signature ||
       !this.razorpayAdapter.verifyWebhookSignature(raw, signature)
@@ -32,9 +34,9 @@ export class PaymentsWebhookController {
       throw new BadRequestException('Invalid Razorpay signature');
     }
 
-    const payload = (typeof req.body === 'object' && req.body
-      ? req.body
-      : JSON.parse(raw)) as {
+    const payload = (
+      typeof req.body === 'object' && req.body ? req.body : JSON.parse(raw)
+    ) as {
       payload?: { payment?: { entity?: { order_id?: string } } };
     };
     const orderId = payload.payload?.payment?.entity?.order_id;
@@ -44,4 +46,3 @@ export class PaymentsWebhookController {
     return { ok: true, consultationId: consult?.id ?? null };
   }
 }
-

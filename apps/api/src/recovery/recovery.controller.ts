@@ -10,10 +10,7 @@ import {
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { CurrentUser, FirebaseAuthGuard } from '../auth/auth.decorators';
 import type { AuthUser } from '../auth/auth-user';
-import {
-  RecoveryService,
-  type WearableSyncPayload,
-} from './recovery.service';
+import { RecoveryService, type WearableSyncPayload } from './recovery.service';
 
 @ApiTags('recovery')
 @ApiBearerAuth()
@@ -43,10 +40,7 @@ export class RecoveryController {
   }
 
   @Post('sync/demo')
-  syncDemo(
-    @CurrentUser() user: AuthUser,
-    @Body() body: { provider?: string },
-  ) {
+  syncDemo(@CurrentUser() user: AuthUser, @Body() body: { provider?: string }) {
     return this.recovery.syncDemo(user, body.provider || 'health_connect');
   }
 

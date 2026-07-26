@@ -21,7 +21,7 @@ export class ExerciseMediaAdapter {
   get licensed() {
     return Boolean(
       this.config.get<string>('EXERCISE_MEDIA_CDN_BASE')?.trim() &&
-        this.provider !== 'free_exercise_db',
+      this.provider !== 'free_exercise_db',
     );
   }
 
@@ -39,7 +39,10 @@ export class ExerciseMediaAdapter {
   }
 
   /** Optional video URLs when CDN hosts mp4/webm under videos/ */
-  resolveVideoUrls(exerciseId: string, filenames: string[] = ['demo.mp4']): string[] {
+  resolveVideoUrls(
+    exerciseId: string,
+    filenames: string[] = ['demo.mp4'],
+  ): string[] {
     const cdn = this.config.get<string>('EXERCISE_MEDIA_CDN_BASE')?.trim();
     if (!this.licensed || !cdn) return [];
     return filenames.map(
@@ -55,7 +58,7 @@ export class ExerciseMediaAdapter {
   }) {
     let filenames: string[] = [];
     try {
-      const parsed = JSON.parse(exercise.imagesJson || '[]');
+      const parsed: unknown = JSON.parse(exercise.imagesJson || '[]');
       if (Array.isArray(parsed)) filenames = parsed.map(String);
     } catch {
       filenames = [];

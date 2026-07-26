@@ -23,7 +23,7 @@ export class NutritionixAdapter {
   get enabled() {
     return Boolean(
       this.config.get<string>('NUTRITIONIX_APP_ID')?.trim() &&
-        this.config.get<string>('NUTRITIONIX_APP_KEY')?.trim(),
+      this.config.get<string>('NUTRITIONIX_APP_KEY')?.trim(),
     );
   }
 
@@ -49,7 +49,11 @@ export class NutritionixAdapter {
         return [];
       }
       const data = (await res.json()) as {
-        common?: Array<{ food_name?: string; serving_unit?: string; photo?: { thumb?: string } }>;
+        common?: Array<{
+          food_name?: string;
+          serving_unit?: string;
+          photo?: { thumb?: string };
+        }>;
         branded?: Array<{
           nix_item_id?: string;
           food_name?: string;
