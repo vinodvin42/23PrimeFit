@@ -1,0 +1,1248 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum Role {
+  CLIENT
+  COACH
+  ADMIN
+}
+
+enum Sex {
+  MALE
+  FEMALE
+  OTHER
+  PREFER_NOT_TO_SAY
+}
+
+enum ActivityLevel {
+  SEDENTARY
+  LIGHT
+  MODERATE
+  ACTIVE
+  VERY_ACTIVE
+}
+
+enum FitnessGoal {
+  WEIGHT_LOSS
+  MUSCLE_GAIN
+  GENERAL_FITNESS
+  ATHLETIC_PERFORMANCE
+  CRICKET_PERFORMANCE
+  METABOLIC_HEALTH
+  STRENGTH
+  ENDURANCE
+}
+
+enum SessionStatus {
+  PLANNED
+  IN_PROGRESS
+  COMPLETED
+  SKIPPED
+}
+
+enum ConsultationStatus {
+  REQUESTED
+  SCHEDULED
+  COMPLETED
+  CANCELLED
+}
+
+enum PaymentStatus {
+  PENDING
+  PAID
+  FAILED
+  REFUNDED
+}
+
+enum AiInsightStatus {
+  DRAFT
+  APPROVED
+  REJECTED
+}
+
+enum TenantType {
+  EXTERNAL_COACH_BUSINESS
+  PRIMEFIT_INTERNAL
+}
+
+enum TenantMembershipRole {
+  OWNER
+  ADMIN
+  COACH
+  NUTRITIONIST
+  STAFF
+  ANALYST
+}
+
+enum SubscriptionStatus {
+  TRIALING
+  ACTIVE
+  PAST_DUE
+  CANCELLED
+  EXPIRED
+}
+
+enum ClientMembershipStatus {
+  INVITED
+  ACTIVE
+  PAUSED
+  ENDED
+}
+
+model User {
+  id          String   @id @default(cuid())
+  firebaseUid String   @unique
+  email       String?  @unique
+  displayName String?
+  role        Role     @default(CLIENT)
+  /// Platform super-admin (23PrimeFit ops) — not a tenant role
+  isPlatformAdmin Boolean @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  profile            Profile?
+  coachAssignments   CoachClient[]       @relation("CoachAssignments")
+  clientAssignments  CoachClient[]       @relation("ClientAssignments")
+  workoutAssignments WorkoutAssignment[]
+  workoutSessions    WorkoutSession[]
+  nutritionLogs       NutritionLog[]
+  recoverySnapshots   RecoverySnapshot[]
+  mealPlanAssignments MealPlanAssignment[]
+  wearableConnections WearableConnection[]
+  coachThreads        MessageThread[]      @relation("CoachThreads")
+  clientThreads       MessageThread[]      @relation("ClientThreads")
+  sentMessages        Message[]            @relation("SentMessages")
+  coachConsults       Consultation[]       @relation("CoachConsults")
+  clientConsults      Consultation[]       @relation("ClientConsults")
+  payments            Payment[]
+  notifications       AppNotification[]
+  bloodReports        BloodReport[]
+  aiInsights          AiInsight[]
+  biologicalAges      BiologicalAgeSnapshot[]
+  progressPhotos      ProgressPhoto[]
+  consentRecords      ConsentRecord[]
+  auditLogs           AuditLog[]
+  healthSignals       HealthSignal[]
+  predictionSnapshots PredictionSnapshot[]
+  outcomeLabels       OutcomeLabel[]
+  cricketProfile      CricketAthleteProfile?
+  cricketSessions     CricketSession[]
+  tenantMemberships   TenantMembership[]
+  clientMemberships   ClientMembership[]
+  ownedTenants        Tenant[]             @relation("TenantOwner")
+  createdInvites      ClientInvitation[]   @relation("InviteCreator")
+  supportAccessLogs   SupportAccessLog[]
+  femaleHealthProfile FemaleHealthProfile?
+  cycleLogs           CycleLog[]
+  symptomCheckIns     SymptomCheckIn[]
+  healthspanSnapshots HealthspanSnapshot[]
+  foodVisionLogs      FoodVisionLog[]
+  postureAnalyses     PostureAnalysis[]
+}
+
+model Profile {
+  id                 String         @id @default(cuid())
+  userId             String         @unique
+  user               User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  dateOfBirth        DateTime?
+  sex                Sex?
+  heightCm           Float?
+  weightKg           Float?
+  goals              FitnessGoal[]
+  lifestyleDisorders String[]
+  activityLevel      ActivityLevel?
+  onboardingComplete Boolean        @default(false)
+  fcmToken           String?
+  createdAt          DateTime       @default(now())
+  updatedAt          DateTime       @updatedAt
+}
+
+model CoachClient {
+  id        String   @id @default(cuid())
+  tenantId  String
+  coachId   String
+  clientId  String
+  coach     User     @relation("CoachAssignments", fields: [coachId], references: [id], onDelete: Cascade)
+  client    User     @relation("ClientAssignments", fields: [clientId], references: [id], onDelete: Cascade)
+  tenant    Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  notes     String?
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([tenantId, coachId, clientId])
+  @@index([coachId])
+  @@index([clientId])
+  @@index([tenantId])
+}
+
+/// Sourced from yuhonas/free-exercise-db (Unlicense / public domain)
+model Exercise {
+  id               String   @id
+  name             String
+  force            String?
+  level            String?
+  mechanic         String?
+  equipment        String?
+  primaryMuscles   String[]
+  secondaryMuscles String[]
+  instructions     String[]
+  category         String?
+  images           String[]
+  imageBaseUrl     String   @default("https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/")
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  programItems WorkoutProgramItem[]
+
+  @@index([name])
+  @@index([category])
+}
+
+model WorkoutProgram {
+  id          String   @id @default(cuid())
+  tenantId    String?
+  slug        String   @unique
+  title       String
+  description String
+  level       String
+  goalTags    String[]
+  durationMin Int
+  daysPerWeek Int
+  createdById String?
+  active      Boolean  @default(true)
+  imageUrl    String?
+  videoUrl    String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  tenant       Tenant?              @relation(fields: [tenantId], references: [id], onDelete: SetNull)
+  items        WorkoutProgramItem[]
+  assignments  WorkoutAssignment[]
+  sessions     WorkoutSession[]
+
+  @@index([createdById])
+  @@index([tenantId])
+}
+
+model WorkoutProgramItem {
+  id         String @id @default(cuid())
+  programId  String
+  exerciseId String
+  dayIndex   Int
+  sortOrder  Int
+  sets       Int
+  reps       String
+  restSec    Int    @default(60)
+  notes      String?
+
+  program  WorkoutProgram @relation(fields: [programId], references: [id], onDelete: Cascade)
+  exercise Exercise       @relation(fields: [exerciseId], references: [id], onDelete: Cascade)
+
+  @@index([programId, dayIndex])
+}
+
+model WorkoutAssignment {
+  id         String   @id @default(cuid())
+  userId     String
+  programId  String
+  active     Boolean  @default(true)
+  assignedAt DateTime @default(now())
+
+  user    User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  program WorkoutProgram @relation(fields: [programId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, programId])
+  @@index([userId])
+}
+
+model WorkoutSession {
+  id              String        @id @default(cuid())
+  userId          String
+  programId       String?
+  title           String
+  dayIndex        Int           @default(0)
+  status          SessionStatus @default(PLANNED)
+  scheduledFor    DateTime
+  startedAt       DateTime?
+  completedAt     DateTime?
+  durationMin     Int?
+  perceivedEffort Int?
+  notes           String?
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  user    User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  program WorkoutProgram? @relation(fields: [programId], references: [id], onDelete: SetNull)
+
+  @@index([userId, scheduledFor])
+}
+
+model FoodItem {
+  id           String   @id @default(cuid())
+  name         String
+  brand        String?
+  servingLabel String
+  calories     Float
+  proteinG     Float
+  carbsG       Float
+  fatG         Float
+  barcode      String?
+  imageUrl     String?
+  source       String   @default("mock")
+  externalId   String?
+  isMock       Boolean  @default(true)
+  createdAt    DateTime @default(now())
+
+  logs NutritionLog[]
+
+  @@unique([source, externalId])
+  @@index([name])
+  @@index([barcode])
+}
+
+model NutritionLog {
+  id         String   @id @default(cuid())
+  userId     String
+  foodItemId String
+  mealType   String
+  servings   Float    @default(1)
+  loggedAt   DateTime @default(now())
+  dateKey    String
+
+  user User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  food FoodItem @relation(fields: [foodItemId], references: [id], onDelete: Cascade)
+
+  @@index([userId, dateKey])
+}
+
+model Recipe {
+  id            String   @id @default(cuid())
+  slug          String   @unique
+  title         String
+  summary       String
+  imageUrl      String?
+  prepMin       Int
+  cookMin       Int
+  servings      Int      @default(2)
+  calories      Float
+  proteinG      Float
+  carbsG        Float
+  fatG          Float
+  tags          String[]
+  ingredients   String[]
+  instructions  String[]
+  source        String   @default("seed")
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  mealPlanItems MealPlanItem[]
+}
+
+model MealPlan {
+  id          String   @id @default(cuid())
+  tenantId    String?
+  slug        String   @unique
+  title       String
+  description String
+  goalTags    String[]
+  dailyKcal   Int
+  createdById String?
+  active      Boolean  @default(true)
+  imageUrl    String?
+  videoUrl    String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  tenant      Tenant?              @relation(fields: [tenantId], references: [id], onDelete: SetNull)
+  items       MealPlanItem[]
+  assignments MealPlanAssignment[]
+
+  @@index([createdById])
+  @@index([tenantId])
+}
+
+model MealPlanItem {
+  id         String @id @default(cuid())
+  mealPlanId String
+  recipeId   String
+  dayIndex   Int
+  mealType   String
+  sortOrder  Int    @default(0)
+
+  mealPlan MealPlan @relation(fields: [mealPlanId], references: [id], onDelete: Cascade)
+  recipe   Recipe   @relation(fields: [recipeId], references: [id], onDelete: Cascade)
+
+  @@index([mealPlanId, dayIndex])
+}
+
+model MealPlanAssignment {
+  id         String   @id @default(cuid())
+  userId     String
+  mealPlanId String
+  active     Boolean  @default(true)
+  assignedAt DateTime @default(now())
+
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  mealPlan MealPlan @relation(fields: [mealPlanId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, mealPlanId])
+  @@index([userId])
+}
+
+model RecoverySnapshot {
+  id            String   @id @default(cuid())
+  userId        String
+  dateKey       String
+  sleepHours    Float?
+  stressScore   Int?
+  steps         Int?
+  restingHr     Int?
+  activeKcal    Int?
+  hrvMs         Int?
+  vo2Max        Float?
+  spo2          Float?
+  trainingLoad  Float?
+  source        String   @default("mock")
+  syncedAt      DateTime @default(now())
+  createdAt     DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, dateKey])
+  @@index([userId, dateKey])
+}
+
+model WearableConnection {
+  id           String   @id @default(cuid())
+  userId       String
+  provider     String
+  status       String   @default("connected")
+  lastSyncAt   DateTime?
+  deviceLabel  String?
+  /** Opaque OAuth tokens / metadata JSON (never returned to clients). */
+  metaJson     String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, provider])
+  @@index([userId])
+}
+
+model MessageThread {
+  id        String   @id @default(cuid())
+  tenantId  String?
+  coachId   String
+  clientId  String
+  subject   String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  tenant   Tenant?   @relation(fields: [tenantId], references: [id], onDelete: SetNull)
+  coach    User      @relation("CoachThreads", fields: [coachId], references: [id], onDelete: Cascade)
+  client   User      @relation("ClientThreads", fields: [clientId], references: [id], onDelete: Cascade)
+  messages Message[]
+
+  @@unique([coachId, clientId])
+  @@index([coachId])
+  @@index([clientId])
+  @@index([tenantId])
+}
+
+model Message {
+  id        String   @id @default(cuid())
+  threadId  String
+  senderId  String
+  body      String
+  createdAt DateTime @default(now())
+
+  thread MessageThread @relation(fields: [threadId], references: [id], onDelete: Cascade)
+  sender User          @relation("SentMessages", fields: [senderId], references: [id], onDelete: Cascade)
+
+  @@index([threadId, createdAt])
+}
+
+model Consultation {
+  id           String             @id @default(cuid())
+  tenantId     String?
+  coachId      String
+  clientId     String
+  topic        String
+  notes        String?
+  scheduledAt  DateTime
+  durationMin  Int                @default(30)
+  status       ConsultationStatus @default(REQUESTED)
+  meetingUrl   String?
+  amountInr    Int                @default(999)
+  createdAt    DateTime           @default(now())
+  updatedAt    DateTime           @updatedAt
+
+  tenant   Tenant?   @relation(fields: [tenantId], references: [id], onDelete: SetNull)
+  coach    User      @relation("CoachConsults", fields: [coachId], references: [id], onDelete: Cascade)
+  client   User      @relation("ClientConsults", fields: [clientId], references: [id], onDelete: Cascade)
+  payment  Payment?
+
+  @@index([coachId, scheduledAt])
+  @@index([clientId, scheduledAt])
+  @@index([tenantId])
+}
+
+model Payment {
+  id             String        @id @default(cuid())
+  tenantId       String?
+  userId         String
+  consultationId String?       @unique
+  provider       String        @default("razorpay")
+  amountInr      Int
+  currency       String        @default("INR")
+  status         PaymentStatus @default(PENDING)
+  externalId     String?
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+
+  tenant       Tenant?       @relation(fields: [tenantId], references: [id], onDelete: SetNull)
+  user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  consultation Consultation? @relation(fields: [consultationId], references: [id], onDelete: SetNull)
+
+  @@index([userId])
+  @@index([tenantId])
+}
+
+model AppNotification {
+  id        String   @id @default(cuid())
+  userId    String
+  title     String
+  body      String
+  type      String
+  read      Boolean  @default(false)
+  dataJson  String?
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, read, createdAt])
+}
+
+model BloodReport {
+  id          String    @id @default(cuid())
+  userId      String
+  title       String
+  fileName    String
+  fileUrl     String?
+  markersJson String
+  summary     String?
+  analyzedAt  DateTime?
+  createdAt   DateTime  @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+}
+
+model AiInsight {
+  id              String          @id @default(cuid())
+  tenantId        String?
+  userId          String
+  category        String
+  title           String
+  body            String
+  coachEditedBody String?
+  severity        String          @default("info")
+  source          String          @default("rules")
+  status          AiInsightStatus @default(DRAFT)
+  reviewedById    String?
+  reviewedAt      DateTime?
+  createdAt       DateTime        @default(now())
+
+  tenant Tenant? @relation(fields: [tenantId], references: [id], onDelete: SetNull)
+  user   User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+  @@index([status, createdAt])
+  @@index([tenantId])
+}
+
+model BiologicalAgeSnapshot {
+  id                String   @id @default(cuid())
+  userId            String
+  chronologicalAge  Float
+  biologicalAge     Float
+  deltaYears        Float
+  factorsJson       String
+  createdAt         DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+}
+
+/// Progress check-in photos (local disk MVP; R2/S3 via STORAGE_DRIVER)
+model ProgressPhoto {
+  id           String   @id @default(cuid())
+  userId       String
+  pose         String   @default("front")
+  caption      String?
+  weightKg     Float?
+  storageKey   String
+  fileUrl      String
+  contentType  String   @default("image/svg+xml")
+  takenAt      DateTime @default(now())
+  createdAt    DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, takenAt])
+}
+
+/// User opt-in for wearable sync, blood analysis, AI coaching (next-plan Phase 1)
+model ConsentRecord {
+  id        String   @id @default(cuid())
+  userId    String
+  purpose   String
+  granted   Boolean  @default(false)
+  version   String   @default("1")
+  grantedAt DateTime?
+  revokedAt DateTime?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, purpose])
+  @@index([userId, purpose])
+}
+
+/// Opt-in female-health preferences. This is wellness tracking, not medical care.
+model FemaleHealthProfile {
+  id                   String   @id @default(cuid())
+  userId               String   @unique
+  tenantId             String?
+  trackingEnabled      Boolean  @default(false)
+  typicalCycleLength   Int?
+  typicalPeriodLength  Int?
+  lastPeriodStart      DateTime?
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tenant Tenant? @relation(fields: [tenantId], references: [id], onDelete: SetNull)
+
+  @@index([tenantId])
+}
+
+model CycleLog {
+  id          String   @id @default(cuid())
+  userId      String
+  tenantId    String?
+  periodStart DateTime
+  periodEnd   DateTime?
+  notes       String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tenant Tenant? @relation(fields: [tenantId], references: [id], onDelete: SetNull)
+
+  @@index([userId, periodStart])
+  @@index([tenantId])
+}
+
+model SymptomCheckIn {
+  id          String   @id @default(cuid())
+  userId      String
+  tenantId    String?
+  dateKey     String
+  symptoms    String[]
+  severity    Int      @default(1)
+  notes       String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tenant Tenant? @relation(fields: [tenantId], references: [id], onDelete: SetNull)
+
+  @@index([userId, dateKey])
+  @@index([tenantId])
+}
+
+/// Rules-based wellness estimate; not a medical biological-age determination.
+model HealthspanSnapshot {
+  id                 String   @id @default(cuid())
+  userId             String
+  tenantId           String?
+  dateKey            String
+  score              Float
+  biologicalAge      Float?
+  pace               Float?
+  trend              String?
+  pillarsJson        String
+  coverageConfidence String
+  modelVersion       String
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tenant Tenant? @relation(fields: [tenantId], references: [id], onDelete: SetNull)
+
+  @@unique([userId, dateKey, modelVersion])
+  @@index([userId, dateKey])
+  @@index([tenantId])
+}
+
+/// Audit trail for health/medical/AI actions (next-plan Phase 1 scaffold)
+model AuditLog {
+  id         String   @id @default(cuid())
+  actorId    String?
+  userId     String?
+  action     String
+  resource   String
+  resourceId String?
+  metaJson   String?
+  createdAt  DateTime @default(now())
+
+  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([userId, createdAt])
+  @@index([actorId, createdAt])
+  @@index([resource, createdAt])
+}
+
+/// Phase 7 — scored wellness signals (injury risk, readiness, cricket load, …)
+model HealthSignal {
+  id           String   @id @default(cuid())
+  userId       String
+  dateKey      String
+  type         String
+  score        Float
+  band         String
+  explainJson  String
+  modelVersion String   @default("rules-v1")
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, dateKey, type])
+  @@index([userId, dateKey])
+  @@index([userId, type, dateKey])
+}
+
+/// Phase 7 — short-horizon forecasts (24h / 72h / 7d)
+model PredictionSnapshot {
+  id             String   @id @default(cuid())
+  userId         String
+  dateKey        String
+  horizonHours   Int
+  metric         String
+  predictedValue Float
+  confidence     String   @default("MED")
+  driversJson    String
+  modelVersion   String   @default("rules-v1")
+  createdAt      DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, dateKey, horizonHours, metric])
+  @@index([userId, dateKey])
+}
+
+/// Phase 7 — labeled outcomes for future ML (write path in v1)
+model OutcomeLabel {
+  id        String   @id @default(cuid())
+  userId    String
+  dateKey   String
+  kind      String
+  note      String?
+  source    String   @default("coach")
+  actorId   String?
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, dateKey])
+  @@index([kind, createdAt])
+}
+
+enum CricketRole {
+  BATTER
+  BOWLER
+  KEEPER
+  ALL_ROUNDER
+}
+
+enum CricketTeamLevel {
+  SCHOOL
+  CLUB
+  ACADEMY
+  PRO_AM
+}
+
+enum CricketSessionKind {
+  NETS
+  MATCH
+  GYM_CRICKET
+  RECOVERY
+}
+
+model CricketAthleteProfile {
+  id           String           @id @default(cuid())
+  userId       String           @unique
+  primaryRole  CricketRole      @default(ALL_ROUNDER)
+  bowlingType  String?
+  battingHand  String?
+  teamLevel    CricketTeamLevel @default(CLUB)
+  createdAt    DateTime         @default(now())
+  updatedAt    DateTime         @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model CricketSession {
+  id               String             @id @default(cuid())
+  userId           String
+  dateKey          String
+  kind             CricketSessionKind @default(NETS)
+  durationMin      Int                @default(60)
+  rpe              Int?
+  notes            String?
+  workoutSessionId String?
+  overs            Float?
+  balls            Int?
+  bowlIntensity    String?
+  batMinutes       Int?
+  fieldMinutes     Int?
+  runs             Int?
+  ballsFaced       Int?
+  wickets          Int?
+  economy          Float?
+  createdAt        DateTime           @default(now())
+  updatedAt        DateTime           @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, dateKey])
+  @@index([userId, kind, dateKey])
+}
+
+/// Multi-tenant coaching workspace (Phase 1 SaaS foundation)
+model Tenant {
+  id          String     @id @default(cuid())
+  slug        String     @unique
+  name        String
+  type        TenantType @default(EXTERNAL_COACH_BUSINESS)
+  ownerUserId String?
+  active      Boolean    @default(true)
+  trialEndsAt DateTime?
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+
+  owner              User?               @relation("TenantOwner", fields: [ownerUserId], references: [id], onDelete: SetNull)
+  memberships        TenantMembership[]
+  clientMemberships  ClientMembership[]
+  invitations        ClientInvitation[]
+  subscriptions      Subscription[]
+  usageMeters        UsageMeter[]
+  invoices           Invoice[]
+  coachClients       CoachClient[]
+  workoutPrograms    WorkoutProgram[]
+  mealPlans          MealPlan[]
+  messageThreads     MessageThread[]
+  consultations      Consultation[]
+  payments           Payment[]
+  aiInsights         AiInsight[]
+  supportAccessLogs  SupportAccessLog[]
+  entitlements       Entitlement[]
+  femaleHealthProfiles FemaleHealthProfile[]
+  cycleLogs          CycleLog[]
+  symptomCheckIns    SymptomCheckIn[]
+  healthspanSnapshots HealthspanSnapshot[]
+  foodVisionLogs      FoodVisionLog[]
+  postureAnalyses     PostureAnalysis[]
+  crmLeads            CrmLead[]
+  clientContracts     ClientContract[]
+  clientInvoices      TenantInvoice[]
+  knowledgeDocs       TenantKnowledgeDoc[]
+  marketplaceListing  MarketplaceListing?
+  marketplaceEnrollments MarketplaceEnrollment[]
+  apiKeys             ApiKey[]
+  webhookEndpoints    WebhookEndpoint[]
+
+  @@index([type, active])
+  @@index([ownerUserId])
+}
+
+model TenantMembership {
+  id        String               @id @default(cuid())
+  tenantId  String
+  userId    String
+  role      TenantMembershipRole @default(COACH)
+  active    Boolean              @default(true)
+  createdAt DateTime             @default(now())
+  updatedAt DateTime             @updatedAt
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, userId])
+  @@index([userId, active])
+  @@index([tenantId, role])
+}
+
+model ClientMembership {
+  id        String                 @id @default(cuid())
+  tenantId  String
+  userId    String
+  status    ClientMembershipStatus @default(INVITED)
+  invitedBy String?
+  joinedAt  DateTime?
+  createdAt DateTime               @default(now())
+  updatedAt DateTime               @updatedAt
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, userId])
+  @@index([userId, status])
+  @@index([tenantId, status])
+}
+
+model ClientInvitation {
+  id          String    @id @default(cuid())
+  tenantId    String
+  email       String
+  token       String    @unique
+  invitedById String
+  acceptedAt  DateTime?
+  expiresAt   DateTime
+  createdAt   DateTime  @default(now())
+
+  tenant    Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  invitedBy User   @relation("InviteCreator", fields: [invitedById], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, email])
+  @@index([token])
+}
+
+model Plan {
+  id              String   @id @default(cuid())
+  code            String   @unique
+  name            String
+  description     String?
+  priceInrMonthly Int
+  clientSeatLimit Int      @default(25)
+  aiInsightLimit  Int      @default(100)
+  storageMbLimit  Int      @default(1024)
+  active          Boolean  @default(true)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  subscriptions Subscription[]
+  entitlements  Entitlement[]
+}
+
+model Subscription {
+  id                   String             @id @default(cuid())
+  tenantId             String
+  planId               String
+  status               SubscriptionStatus @default(TRIALING)
+  currentPeriodStart   DateTime           @default(now())
+  currentPeriodEnd     DateTime
+  razorpaySubscriptionId String?
+  cancelAtPeriodEnd    Boolean            @default(false)
+  createdAt            DateTime           @default(now())
+  updatedAt            DateTime           @updatedAt
+
+  tenant Tenant              @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  plan   Plan                @relation(fields: [planId], references: [id])
+  events SubscriptionEvent[]
+  invoices Invoice[]
+
+  @@index([tenantId, status])
+  @@index([planId])
+}
+
+model Entitlement {
+  id        String   @id @default(cuid())
+  tenantId  String?
+  planId    String?
+  key       String
+  valueInt  Int?
+  valueBool Boolean?
+  createdAt DateTime @default(now())
+
+  tenant Tenant? @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  plan   Plan?   @relation(fields: [planId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, key])
+  @@index([planId, key])
+}
+
+model UsageMeter {
+  id        String   @id @default(cuid())
+  tenantId  String
+  periodKey String
+  metric    String
+  used      Int      @default(0)
+  updatedAt DateTime @updatedAt
+  createdAt DateTime @default(now())
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, periodKey, metric])
+  @@index([tenantId, periodKey])
+}
+
+model Invoice {
+  id             String        @id @default(cuid())
+  tenantId       String
+  subscriptionId String?
+  amountInr      Int
+  currency       String        @default("INR")
+  status         PaymentStatus @default(PENDING)
+  periodStart    DateTime?
+  periodEnd      DateTime?
+  externalId     String?
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+
+  tenant         Tenant          @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  subscription   Subscription?   @relation(fields: [subscriptionId], references: [id], onDelete: SetNull)
+  paymentAttempts PaymentAttempt[]
+
+  @@index([tenantId, status])
+}
+
+model PaymentAttempt {
+  id         String        @id @default(cuid())
+  invoiceId  String
+  provider   String        @default("razorpay")
+  status     PaymentStatus @default(PENDING)
+  externalId String?
+  rawJson    String?
+  createdAt  DateTime      @default(now())
+
+  invoice Invoice @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+
+  @@index([invoiceId, createdAt])
+}
+
+model Coupon {
+  id              String    @id @default(cuid())
+  code            String    @unique
+  percentOff      Int?
+  amountOffInr    Int?
+  maxRedemptions  Int?
+  redeemedCount   Int       @default(0)
+  active          Boolean   @default(true)
+  expiresAt       DateTime?
+  createdAt       DateTime  @default(now())
+}
+
+model SubscriptionEvent {
+  id             String   @id @default(cuid())
+  subscriptionId String
+  type           String
+  metaJson       String?
+  createdAt      DateTime @default(now())
+
+  subscription Subscription @relation(fields: [subscriptionId], references: [id], onDelete: Cascade)
+
+  @@index([subscriptionId, createdAt])
+}
+
+model SupportAccessLog {
+  id         String   @id @default(cuid())
+  tenantId   String
+  actorId    String
+  reason     String
+  createdAt  DateTime @default(now())
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  actor  User   @relation(fields: [actorId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, createdAt])
+  @@index([actorId, createdAt])
+}
+
+/// Phase 8 — rules-based photo recognition output, always editable by the client.
+model FoodVisionLog {
+  id             String   @id @default(cuid())
+  tenantId       String?
+  userId         String
+  imageUrl       String?
+  recognizedName String
+  calories       Float
+  proteinG       Float
+  carbsG         Float
+  fatG           Float
+  confidence     Float    @default(0.5)
+  source         String   @default("rules")
+  editedAt       DateTime?
+  createdAt      DateTime @default(now())
+
+  tenant Tenant? @relation(fields: [tenantId], references: [id], onDelete: SetNull)
+  user   User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+  @@index([tenantId])
+}
+
+/// Phase 8 — posture analyses remain coach-reviewed drafts before client visibility.
+model PostureAnalysis {
+  id             String          @id @default(cuid())
+  tenantId       String?
+  userId         String
+  imageUrl       String?
+  summary        String
+  findingsJson   String
+  status         AiInsightStatus @default(DRAFT)
+  reviewedById   String?
+  reviewedAt     DateTime?
+  coachNotes     String?
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+
+  tenant Tenant? @relation(fields: [tenantId], references: [id], onDelete: SetNull)
+  user   User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, status, createdAt])
+  @@index([tenantId])
+}
+
+/// Phase 9 — tenant-owned prospect pipeline, distinct from platform tenancy.
+model CrmLead {
+  id            String   @id @default(cuid())
+  tenantId      String
+  clientUserId  String?
+  name          String
+  email         String?
+  phone         String?
+  stage         String   @default("lead")
+  packageName   String?
+  notes         String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, stage, updatedAt])
+}
+
+model ClientContract {
+  id          String   @id @default(cuid())
+  tenantId    String
+  clientId    String?
+  leadId      String?
+  kind        String   @default("contract")
+  title       String
+  body        String?
+  acceptedAt  DateTime?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, clientId])
+}
+
+/// Client commerce invoice; deliberately separate from SaaS Subscription invoices.
+model TenantInvoice {
+  id          String        @id @default(cuid())
+  tenantId    String
+  leadId      String?
+  clientId    String?
+  packageName String
+  amountInr   Int
+  currency    String        @default("INR")
+  status      PaymentStatus @default(PENDING)
+  dueAt       DateTime?
+  paidAt      DateTime?
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, status, createdAt])
+}
+
+model TenantKnowledgeDoc {
+  id          String   @id @default(cuid())
+  tenantId    String
+  title       String
+  content     String
+  sourceUrl   String?
+  createdById String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, createdAt])
+}
+
+model MarketplaceListing {
+  id          String   @id @default(cuid())
+  tenantId    String   @unique
+  title       String
+  description String
+  published   Boolean  @default(false)
+  category    String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([published, createdAt])
+}
+
+model MarketplaceEnrollment {
+  id          String   @id @default(cuid())
+  tenantId    String
+  userId      String
+  listingId   String
+  createdAt   DateTime @default(now())
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, userId])
+  @@index([listingId])
+}
+
+model ApiKey {
+  id          String   @id @default(cuid())
+  tenantId    String
+  name        String
+  keyPrefix   String
+  secretHash  String   @unique
+  lastUsedAt  DateTime?
+  revokedAt   DateTime?
+  createdById String?
+  createdAt   DateTime @default(now())
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, revokedAt])
+  @@index([keyPrefix])
+}
+
+model WebhookEndpoint {
+  id          String   @id @default(cuid())
+  tenantId    String
+  url         String
+  events      String[]
+  secret      String?
+  active      Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, active])
+}

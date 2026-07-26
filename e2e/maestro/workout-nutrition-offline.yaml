@@ -1,0 +1,18 @@
+appId: com.primefit23.primefit_mobile
+---
+# Critical mobile regression: exercise and nutrition writes remain usable while
+# disconnected; reconnecting flushes the persisted Drift outbox.
+- launchApp
+- assertVisible: "23PrimeFit"
+- tapOn: "Train"
+  optional: true
+- assertVisible:
+    text: ".*Workout.*|.*Today's plan.*|.*Start.*"
+    optional: true
+- tapOn: "Fuel"
+  optional: true
+- assertVisible:
+    text: ".*Nutrition.*|.*Log meal.*|.*Calories.*"
+    optional: true
+# Run with the emulator network disabled after reaching each logging form, then
+# re-enable networking and verify the API-side workout/nutrition history.

@@ -1,0 +1,13 @@
+{
+  "name": "23primefit",
+  "private": true,
+  "version": "0.1.0",
+  "description": "23PrimeFit monorepo",
+  "scripts": {
+    "api:dev": "npm --prefix apps/api run start:dev",
+    "api:migrate": "npm --prefix apps/api exec prisma migrate deploy",
+    "coach:dev": "npm --prefix apps/coach-web run dev",
+    "docker:up": "docker compose up -d",
+    "docker:down": "docker compose down"
+  }
+}

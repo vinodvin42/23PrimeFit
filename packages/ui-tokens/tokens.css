@@ -1,0 +1,69 @@
+:root {
+
+  /* App dark neon */
+
+  --pf-void: #0a0a0a;
+
+  --pf-surface: #141414;
+
+  --pf-card: #1c1c1e;
+
+  --pf-lime: #c8ff00;
+
+  --pf-white: #ffffff;
+
+  --pf-soft: #e8e8e8;
+
+  --pf-muted: #8e8e93;
+
+  --pf-danger: #ff453a;
+
+  --pf-accent-blue: #5ac8fa;
+
+  --pf-radius-md: 18px;
+
+  --pf-radius-lg: 28px;
+
+  --pf-font-display: "Poppins", "Segoe UI", sans-serif;
+
+  --pf-font-body: "Poppins", "DM Sans", "Segoe UI", sans-serif;
+
+
+
+  /* Auth / welcome palette (mobile welcome screen) */
+
+  --pf-auth-bg-top: #2e2438;
+
+  --pf-auth-bg-mid: #1e1826;
+
+  --pf-auth-bg-bottom: #100d14;
+
+  --pf-auth-glow: #3a3048;
+
+  --pf-auth-accent: #e8f5a3;
+
+  --pf-auth-field: #3a3344;
+
+  --pf-auth-hint: #9a93a3;
+
+  --pf-auth-secondary: #3d3548;
+
+  --pf-auth-ink: #1c1b2e;
+
+  --pf-auth-soft: #b8b4be;
+
+
+
+  /* Semantic aliases used by coach-web */
+
+  --pf-ink: var(--pf-white);
+
+  --pf-mist: var(--pf-auth-bg-bottom);
+
+  --pf-forest: var(--pf-auth-bg-mid);
+
+  --pf-sand: var(--pf-auth-soft);
+
+}
+
+

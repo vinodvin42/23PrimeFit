@@ -1,0 +1,12 @@
+appId: com.primefit23.primefit_mobile
+---
+- launchApp
+- assertVisible: "23PrimeFit"
+- tapOn: "Login"
+- tapOn:
+    id: "email" # optional; falls back to text fields
+- inputText: "athlete@23primefit.dev"
+- tapOn: "Password"
+- inputText: "primefit"
+- tapOn: "Sign In"
+- assertVisible: "Home"

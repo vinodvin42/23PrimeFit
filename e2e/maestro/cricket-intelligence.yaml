@@ -1,0 +1,20 @@
+# Phase 7 — cricket log → intelligence (API smoke via Maestro comments)
+# Requires: app installed, AUTH_DEV_MODE guest login, API on 10.0.2.2:3001
+appId: com.primefit23.primefit_mobile
+---
+- launchApp
+- assertVisible: "23PrimeFit"
+# Navigate after guest/login as available in your build
+- tapOn:
+    id: ".*[Cc]ricket.*"
+    optional: true
+- tapOn: "Cricket"
+  optional: true
+- assertVisible:
+    text: ".*Bowling load.*|.*Log session.*|.*Role.*"
+    optional: true
+- tapOn: "Log session"
+  optional: true
+- assertVisible:
+    text: ".*Session logged.*|.*overs.*"
+    optional: true

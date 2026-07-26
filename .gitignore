@@ -1,0 +1,100 @@
+# Dependencies
+node_modules/
+.pnp
+.pnp.*
+.yarn/*
+!.yarn/patches
+!.yarn/plugins
+!.yarn/releases
+!.yarn/versions
+.dart_tool/
+.pub-cache/
+.packages
+.pub/
+
+# Environment / secrets
+.env
+.env.*
+!.env.example
+!.env*.example
+**/google-services.json
+**/GoogleService-Info.plist
+**/serviceAccount*.json
+*.pem
+*.p12
+*.key
+
+# IDE / OS
+.idea/
+.vscode/
+*.iml
+*.ipr
+*.iws
+.DS_Store
+Thumbs.db
+Desktop.ini
+*.swp
+*~
+
+# Build / output
+dist/
+build/
+out/
+coverage/
+*.tsbuildinfo
+.next/
+.turbo/
+.vercel/
+apps/api/dist/
+apps/api/generated/
+apps/api/src/generated/
+apps/coach-web/.next/
+apps/coach-web/out/
+apps/coach-web/next-env.d.ts
+
+# NestJS / API local media
+apps/api/uploads/
+uploads/
+
+# Flutter / Dart
+apps/mobile/.flutter-plugins
+apps/mobile/.flutter-plugins-dependencies
+apps/mobile/.dart_tool/
+apps/mobile/build/
+apps/mobile/.pub-cache/
+apps/mobile/ios/Pods/
+apps/mobile/ios/.symlinks/
+apps/mobile/ios/Flutter/Flutter.framework
+apps/mobile/ios/Flutter/Flutter.podspec
+apps/mobile/ios/Flutter/Generated.xcconfig
+apps/mobile/ios/Flutter/ephemeral/
+apps/mobile/android/app/debug/
+apps/mobile/android/app/profile/
+apps/mobile/android/app/release/
+apps/mobile/android/.gradle/
+apps/mobile/android/local.properties
+apps/mobile/**/doc/api/
+*.symbols
+app.*.map.json
+
+# Playwright / Maestro / e2e artifacts
+test-results/
+playwright-report/
+blob-report/
+playwright/.cache/
+.maestro/
+
+# Logs & caches
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+.cache/
+tmp/
+temp/
+*.tmp
+
+# Misc local
+*.local
+.cursor/projects/

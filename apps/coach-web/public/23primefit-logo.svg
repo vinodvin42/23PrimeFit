@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 136" role="img" aria-labelledby="title">
+  <title id="title">23PrimeFit</title>
+  <path
+    fill="#FFD52F"
+    d="M52 3a16 16 0 0 1 16 0l40 23a16 16 0 0 1 8 14v56a16 16 0 0 1-8 14l-40 23a16 16 0 0 1-16 0l-40-23a16 16 0 0 1-8-14V40a16 16 0 0 1 8-14L52 3Z"
+  />
+  <text
+    x="60"
+    y="84"
+    fill="#194234"
+    font-family="Arial Black, Arial, sans-serif"
+    font-size="72"
+    font-weight="900"
+    letter-spacing="-5"
+    text-anchor="middle"
+  >23</text>
+  <text
+    x="60"
+    y="105"
+    fill="#194234"
+    font-family="Arial, sans-serif"
+    font-size="8"
+    font-style="italic"
+    font-weight="800"
+    letter-spacing="3.8"
+    text-anchor="middle"
+  >PRIME FIT</text>
+</svg>

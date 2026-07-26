@@ -1,0 +1,43 @@
+@import '@23primefit/ui-tokens/tokens.css';
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap');
+
+:root {
+  color-scheme: dark;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  min-height: 100%;
+  font-family: var(--pf-font-body);
+  color: var(--pf-white);
+  background: var(--pf-auth-bg-bottom);
+}
+
+body {
+  background:
+    radial-gradient(ellipse 90% 55% at 50% 18%, var(--pf-auth-glow), transparent 70%),
+    linear-gradient(
+      180deg,
+      var(--pf-auth-bg-top) 0%,
+      var(--pf-auth-bg-mid) 45%,
+      var(--pf-auth-bg-bottom) 100%
+    );
+  background-attachment: fixed;
+}
+
+a {
+  color: var(--pf-auth-accent);
+}
+
+button,
+input,
+textarea,
+select {
+  font: inherit;
+}
