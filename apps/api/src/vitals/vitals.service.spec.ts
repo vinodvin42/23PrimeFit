@@ -117,3 +117,38 @@ describe('VitalsService allergies', () => {
     });
   });
 });
+
+describe('VitalsService vaccinations', () => {
+  it('rejects adding a vaccination with a blank name', async () => {
+    const service = new VitalsService({} as never);
+
+    await expect(
+      service.addVaccination({ id: 'user-1' } as never, {
+        name: '  ',
+        administeredAt: '2026-01-01',
+      }),
+    ).rejects.toBeInstanceOf(BadRequestException);
+  });
+
+  it('rejects an unparseable administeredAt date', async () => {
+    const service = new VitalsService({} as never);
+
+    await expect(
+      service.addVaccination({ id: 'user-1' } as never, {
+        name: 'Flu shot',
+        administeredAt: 'not-a-date',
+      }),
+    ).rejects.toBeInstanceOf(BadRequestException);
+  });
+
+  it('rejects removing a vaccination that does not belong to the user', async () => {
+    const prisma = {
+      vaccination: { findFirst: jest.fn().mockResolvedValue(null) },
+    };
+    const service = new VitalsService(prisma as never);
+
+    await expect(
+      service.removeVaccination({ id: 'user-1' } as never, 'vax-1'),
+    ).rejects.toBeInstanceOf(NotFoundException);
+  });
+});

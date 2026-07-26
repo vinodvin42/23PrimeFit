@@ -18,7 +18,7 @@ class _VitalsScreenState extends State<VitalsScreen>
   @override
   void initState() {
     super.initState();
-    _tabs = TabController(length: 3, vsync: this);
+    _tabs = TabController(length: 4, vsync: this);
   }
 
   @override
@@ -69,6 +69,7 @@ class _VitalsScreenState extends State<VitalsScreen>
                   Tab(text: 'Blood pressure'),
                   Tab(text: 'Blood sugar'),
                   Tab(text: 'Allergies'),
+                  Tab(text: 'Vaccinations'),
                 ],
               ),
               Expanded(
@@ -78,6 +79,7 @@ class _VitalsScreenState extends State<VitalsScreen>
                     _BloodPressureTab(),
                     _BloodSugarTab(),
                     _AllergiesTab(),
+                    _VaccinationsTab(),
                   ],
                 ),
               ),
@@ -646,6 +648,235 @@ class _AllergiesTabState extends ConsumerState<_AllergiesTab> {
                                 '${a['severity']}'.toLowerCase(),
                                 if (reaction != null && reaction.isNotEmpty)
                                   reaction,
+                              ].join(' · '),
+                              style: const TextStyle(
+                                color: AppColors.mutedOnDark,
+                              ),
+                            ),
+                            trailing: IconButton(
+                              icon: const Icon(Icons.close,
+                                  color: AppColors.mutedOnDark),
+                              onPressed: _busyId == id
+                                  ? null
+                                  : () => _remove(id),
+                            ),
+                          ),
+                        ),
+                      );
+                    }),
+                  const SizedBox(height: 12),
+                  Text(
+                    '${payload['disclaimer']}',
+                    style: const TextStyle(
+                      color: AppColors.mutedOnDark,
+                      fontSize: 12,
+                    ),
+                  ),
+                ],
+              );
+            },
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _VaccinationsTab extends ConsumerStatefulWidget {
+  const _VaccinationsTab();
+
+  @override
+  ConsumerState<_VaccinationsTab> createState() => _VaccinationsTabState();
+}
+
+class _VaccinationsTabState extends ConsumerState<_VaccinationsTab> {
+  final _name = TextEditingController();
+  final _notes = TextEditingController();
+  DateTime? _administeredAt;
+  DateTime? _nextDueAt;
+  bool _saving = false;
+  String? _busyId;
+
+  @override
+  void dispose() {
+    _name.dispose();
+    _notes.dispose();
+    super.dispose();
+  }
+
+  String _fmt(DateTime d) =>
+      '${d.year}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
+
+  Future<void> _pickDate({required bool isDue}) async {
+    final now = DateTime.now();
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: now,
+      firstDate: DateTime(now.year - 10),
+      lastDate: DateTime(now.year + 10),
+    );
+    if (picked == null) return;
+    setState(() {
+      if (isDue) {
+        _nextDueAt = picked;
+      } else {
+        _administeredAt = picked;
+      }
+    });
+  }
+
+  Future<void> _add() async {
+    if (_name.text.trim().isEmpty || _administeredAt == null) return;
+    setState(() => _saving = true);
+    try {
+      await ref.read(fitnessRepositoryProvider).addVaccination(
+            name: _name.text.trim(),
+            administeredAt: _fmt(_administeredAt!),
+            nextDueAt: _nextDueAt == null ? null : _fmt(_nextDueAt!),
+            notes: _notes.text.trim(),
+          );
+      _name.clear();
+      _notes.clear();
+      setState(() {
+        _administeredAt = null;
+        _nextDueAt = null;
+      });
+      ref.invalidate(vaccinationsProvider);
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text('$e')));
+      }
+    } finally {
+      if (mounted) setState(() => _saving = false);
+    }
+  }
+
+  Future<void> _remove(String id) async {
+    setState(() => _busyId = id);
+    try {
+      await ref.read(fitnessRepositoryProvider).removeVaccination(id);
+      ref.invalidate(vaccinationsProvider);
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text('$e')));
+      }
+    } finally {
+      if (mounted) setState(() => _busyId = null);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final data = ref.watch(vaccinationsProvider);
+    return RefreshIndicator(
+      color: AppColors.lime,
+      onRefresh: () async {
+        ref.invalidate(vaccinationsProvider);
+        await ref.read(vaccinationsProvider.future);
+      },
+      child: ListView(
+        padding: const EdgeInsets.all(24),
+        children: [
+          GlassCard(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Add vaccination',
+                  style: TextStyle(
+                    color: AppColors.white,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                const SizedBox(height: 10),
+                TextField(
+                  controller: _name,
+                  style: const TextStyle(color: AppColors.white),
+                  decoration: const InputDecoration(hintText: 'Vaccine name'),
+                ),
+                const SizedBox(height: 8),
+                Row(
+                  children: [
+                    Expanded(
+                      child: OutlinedButton(
+                        onPressed: () => _pickDate(isDue: false),
+                        child: Text(
+                          _administeredAt == null
+                              ? 'Date given'
+                              : _fmt(_administeredAt!),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: OutlinedButton(
+                        onPressed: () => _pickDate(isDue: true),
+                        child: Text(
+                          _nextDueAt == null
+                              ? 'Next due (optional)'
+                              : _fmt(_nextDueAt!),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                TextField(
+                  controller: _notes,
+                  style: const TextStyle(color: AppColors.white),
+                  decoration: const InputDecoration(
+                    hintText: 'Notes (optional)',
+                  ),
+                ),
+                const SizedBox(height: 10),
+                ElevatedButton(
+                  onPressed: _saving ? null : _add,
+                  child: Text(_saving ? 'Saving…' : 'Add vaccination'),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 16),
+          data.when(
+            loading: () => const Center(
+              child: CircularProgressIndicator(color: AppColors.lime),
+            ),
+            error: (e, _) =>
+                Text('$e', style: const TextStyle(color: AppColors.danger)),
+            data: (payload) {
+              final vaccinations = (payload['vaccinations'] as List? ?? [])
+                  .whereType<Map<String, dynamic>>()
+                  .toList();
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  if (vaccinations.isEmpty)
+                    const GlassCard(
+                      child: Text(
+                        'No vaccinations logged yet.',
+                        style: TextStyle(color: AppColors.soft),
+                      ),
+                    )
+                  else
+                    ...vaccinations.map((v) {
+                      final id = v['id'] as String;
+                      final nextDue = v['nextDueAt'] as String?;
+                      return Padding(
+                        padding: const EdgeInsets.only(bottom: 6),
+                        child: GlassCard(
+                          padding: EdgeInsets.zero,
+                          child: ListTile(
+                            title: Text(
+                              '${v['name']}',
+                              style: const TextStyle(color: AppColors.white),
+                            ),
+                            subtitle: Text(
+                              [
+                                'Given ${v['administeredAt']}',
+                                if (nextDue != null)
+                                  'Next due $nextDue',
                               ].join(' · '),
                               style: const TextStyle(
                                 color: AppColors.mutedOnDark,

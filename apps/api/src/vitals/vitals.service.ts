@@ -148,4 +148,51 @@ export class VitalsService {
       data: { active: false },
     });
   }
+
+  async listVaccinations(user: AuthUser) {
+    const vaccinations = await this.prisma.vaccination.findMany({
+      where: { userId: user.id },
+      orderBy: { administeredAt: 'desc' },
+    });
+    return {
+      disclaimer:
+        'A self-reported record to share with coaches and providers — not an official immunization registry.',
+      vaccinations,
+    };
+  }
+
+  async addVaccination(
+    user: AuthUser,
+    body: {
+      name: string;
+      administeredAt: string;
+      nextDueAt?: string;
+      notes?: string;
+    },
+  ) {
+    if (!body.name?.trim()) {
+      throw new BadRequestException('name is required');
+    }
+    if (!body.administeredAt || Number.isNaN(Date.parse(body.administeredAt))) {
+      throw new BadRequestException('administeredAt must be a valid date');
+    }
+    return this.prisma.vaccination.create({
+      data: {
+        userId: user.id,
+        name: body.name.trim(),
+        administeredAt: new Date(body.administeredAt),
+        nextDueAt: body.nextDueAt ? new Date(body.nextDueAt) : undefined,
+        notes: body.notes,
+      },
+    });
+  }
+
+  async removeVaccination(user: AuthUser, id: string) {
+    const vaccination = await this.prisma.vaccination.findFirst({
+      where: { id, userId: user.id },
+    });
+    if (!vaccination) throw new NotFoundException('Vaccination not found');
+    await this.prisma.vaccination.delete({ where: { id } });
+    return { id };
+  }
 }

@@ -84,4 +84,28 @@ export class VitalsController {
   removeAllergy(@CurrentUser() user: AuthUser, @Param('id') id: string) {
     return this.vitals.removeAllergy(user, id);
   }
+
+  @Get('vaccinations')
+  listVaccinations(@CurrentUser() user: AuthUser) {
+    return this.vitals.listVaccinations(user);
+  }
+
+  @Post('vaccinations')
+  addVaccination(
+    @CurrentUser() user: AuthUser,
+    @Body()
+    body: {
+      name: string;
+      administeredAt: string;
+      nextDueAt?: string;
+      notes?: string;
+    },
+  ) {
+    return this.vitals.addVaccination(user, body);
+  }
+
+  @Delete('vaccinations/:id')
+  removeVaccination(@CurrentUser() user: AuthUser, @Param('id') id: string) {
+    return this.vitals.removeVaccination(user, id);
+  }
 }
