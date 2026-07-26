@@ -314,6 +314,23 @@ class FitnessRepository {
     await _dio.delete('/nutrition/supplements/$id/log');
   }
 
+  Future<Map<String, dynamic>> fastingCurrent() async {
+    final res =
+        await _dio.get<Map<String, dynamic>>('/nutrition/fasting/current');
+    return res.data!;
+  }
+
+  Future<void> startFasting(double targetHours) async {
+    await _dio.post<Map<String, dynamic>>(
+      '/nutrition/fasting/start',
+      data: {'targetHours': targetHours},
+    );
+  }
+
+  Future<void> endFasting() async {
+    await _dio.post<Map<String, dynamic>>('/nutrition/fasting/end');
+  }
+
   Future<List<RecipeItem>> listRecipes([String? q]) async {
     final res = await _dio.get<List<dynamic>>(
       '/nutrition/recipes',
@@ -695,6 +712,11 @@ final hydrationTodayProvider =
 final supplementsProvider =
     FutureProvider.autoDispose<List<Map<String, dynamic>>>((ref) {
   return ref.watch(fitnessRepositoryProvider).listSupplements();
+});
+
+final fastingCurrentProvider =
+    FutureProvider.autoDispose<Map<String, dynamic>>((ref) {
+  return ref.watch(fitnessRepositoryProvider).fastingCurrent();
 });
 
 final recoveryTodayProvider = FutureProvider.autoDispose<RecoveryToday>((ref) {

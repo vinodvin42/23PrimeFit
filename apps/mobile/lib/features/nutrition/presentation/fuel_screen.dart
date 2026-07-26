@@ -20,7 +20,7 @@ class _FuelScreenState extends ConsumerState<FuelScreen>
   @override
   void initState() {
     super.initState();
-    _tabs = TabController(length: 4, vsync: this);
+    _tabs = TabController(length: 5, vsync: this);
   }
 
   @override
@@ -72,6 +72,7 @@ class _FuelScreenState extends ConsumerState<FuelScreen>
                 Tab(text: 'Add'),
                 Tab(text: 'Recipes'),
                 Tab(text: 'Supplements'),
+                Tab(text: 'Fasting'),
               ],
             ),
             Expanded(
@@ -82,6 +83,7 @@ class _FuelScreenState extends ConsumerState<FuelScreen>
                   _AddFoodTab(),
                   _RecipesTab(),
                   _SupplementsTab(),
+                  _FastingTab(),
                 ],
               ),
             ),
@@ -976,6 +978,148 @@ class _SupplementsTabState extends ConsumerState<_SupplementsTab> {
                     ),
                   );
                 }).toList(),
+              );
+            },
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _FastingTab extends ConsumerStatefulWidget {
+  const _FastingTab();
+
+  @override
+  ConsumerState<_FastingTab> createState() => _FastingTabState();
+}
+
+class _FastingTabState extends ConsumerState<_FastingTab> {
+  double _targetHours = 16;
+  bool _busy = false;
+
+  Future<void> _start() async {
+    setState(() => _busy = true);
+    try {
+      await ref.read(fitnessRepositoryProvider).startFasting(_targetHours);
+      ref.invalidate(fastingCurrentProvider);
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text('$e')));
+      }
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  Future<void> _end() async {
+    setState(() => _busy = true);
+    try {
+      await ref.read(fitnessRepositoryProvider).endFasting();
+      ref.invalidate(fastingCurrentProvider);
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text('$e')));
+      }
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final current = ref.watch(fastingCurrentProvider);
+    return RefreshIndicator(
+      color: AppColors.lime,
+      onRefresh: () async {
+        ref.invalidate(fastingCurrentProvider);
+        await ref.read(fastingCurrentProvider.future);
+      },
+      child: ListView(
+        padding: const EdgeInsets.all(24),
+        children: [
+          current.when(
+            loading: () => const Center(
+              child: CircularProgressIndicator(color: AppColors.lime),
+            ),
+            error: (e, _) =>
+                Text('$e', style: const TextStyle(color: AppColors.danger)),
+            data: (data) {
+              final session = data['session'] as Map<String, dynamic>?;
+              final elapsedHours =
+                  (data['elapsedHours'] as num?)?.toDouble() ?? 0;
+              final targetHours = session == null
+                  ? _targetHours
+                  : (session['targetHours'] as num?)?.toDouble() ?? 16;
+              final ratio = targetHours > 0
+                  ? (elapsedHours / targetHours).clamp(0, 1).toDouble()
+                  : 0.0;
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  GlassCard(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          session == null
+                              ? 'No active fast'
+                              : '${elapsedHours.toStringAsFixed(1)}h / ${targetHours.toStringAsFixed(0)}h',
+                          style: const TextStyle(
+                            color: AppColors.white,
+                            fontSize: 24,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                        const SizedBox(height: 10),
+                        ClipRRect(
+                          borderRadius: BorderRadius.circular(8),
+                          child: LinearProgressIndicator(
+                            value: session == null ? 0 : ratio,
+                            minHeight: 10,
+                            backgroundColor: AppColors.card,
+                            color: AppColors.lime,
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+                        if (session == null) ...[
+                          Text(
+                            'Target: ${_targetHours.toStringAsFixed(0)}h',
+                            style: const TextStyle(color: AppColors.muted),
+                          ),
+                          Slider(
+                            value: _targetHours,
+                            min: 12,
+                            max: 24,
+                            divisions: 12,
+                            activeColor: AppColors.lime,
+                            label: '${_targetHours.toStringAsFixed(0)}h',
+                            onChanged: (v) =>
+                                setState(() => _targetHours = v),
+                          ),
+                          ElevatedButton(
+                            onPressed: _busy ? null : _start,
+                            child: Text(_busy ? 'Starting…' : 'Start fast'),
+                          ),
+                        ] else
+                          OutlinedButton(
+                            onPressed: _busy ? null : _end,
+                            child: Text(_busy ? 'Ending…' : 'End fast'),
+                          ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  Text(
+                    '${data['disclaimer']}',
+                    style: const TextStyle(
+                      color: AppColors.muted,
+                      fontSize: 12,
+                    ),
+                  ),
+                ],
               );
             },
           ),

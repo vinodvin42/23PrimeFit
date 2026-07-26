@@ -148,6 +148,7 @@ model User {
   hydrationLogs         HydrationLog[]
   supplements           Supplement[]
   supplementLogs        SupplementLog[]
+  fastingSessions       FastingSession[]
 }
 
 model Profile {
@@ -1359,4 +1360,17 @@ model SupplementLog {
 
   @@unique([supplementId, dateKey])
   @@index([userId, dateKey])
+}
+
+/// Nutrition: personal fasting-window log (wellness only, not a medical protocol).
+model FastingSession {
+  id          String    @id @default(cuid())
+  userId      String
+  startedAt   DateTime  @default(now())
+  endedAt     DateTime?
+  targetHours Float     @default(16)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, startedAt])
 }

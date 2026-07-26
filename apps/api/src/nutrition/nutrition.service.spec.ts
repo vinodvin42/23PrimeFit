@@ -91,3 +91,46 @@ describe('NutritionService supplements', () => {
     ).rejects.toBeInstanceOf(BadRequestException);
   });
 });
+
+describe('NutritionService fasting', () => {
+  it('rejects starting a fast while one is already active', async () => {
+    const prisma = {
+      fastingSession: {
+        findFirst: jest.fn().mockResolvedValue({ id: 'session-1' }),
+      },
+    };
+    const service = makeService(prisma);
+
+    await expect(
+      service.startFasting({ id: 'user-1' } as never, 16),
+    ).rejects.toBeInstanceOf(BadRequestException);
+  });
+
+  it('defaults the target to 16 hours when none is given', async () => {
+    const create = jest.fn().mockResolvedValue({ id: 'session-1' });
+    const prisma = {
+      fastingSession: {
+        findFirst: jest.fn().mockResolvedValue(null),
+        create,
+      },
+    };
+    const service = makeService(prisma);
+
+    await service.startFasting({ id: 'user-1' } as never);
+
+    expect(create).toHaveBeenCalledWith({
+      data: { userId: 'user-1', targetHours: 16 },
+    });
+  });
+
+  it('rejects ending a fast when none is active', async () => {
+    const prisma = {
+      fastingSession: { findFirst: jest.fn().mockResolvedValue(null) },
+    };
+    const service = makeService(prisma);
+
+    await expect(
+      service.endFasting({ id: 'user-1' } as never),
+    ).rejects.toBeInstanceOf(NotFoundException);
+  });
+});

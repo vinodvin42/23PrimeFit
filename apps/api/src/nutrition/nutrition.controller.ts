@@ -103,6 +103,29 @@ export class NutritionController {
     return this.nutrition.unlogSupplement(user, id);
   }
 
+  @Get('fasting/current')
+  fastingCurrent(@CurrentUser() user: AuthUser) {
+    return this.nutrition.fastingCurrent(user);
+  }
+
+  @Post('fasting/start')
+  startFasting(
+    @CurrentUser() user: AuthUser,
+    @Body() body: { targetHours?: number },
+  ) {
+    return this.nutrition.startFasting(user, body?.targetHours);
+  }
+
+  @Post('fasting/end')
+  endFasting(@CurrentUser() user: AuthUser) {
+    return this.nutrition.endFasting(user);
+  }
+
+  @Get('fasting/history')
+  fastingHistory(@CurrentUser() user: AuthUser, @Query('days') days?: string) {
+    return this.nutrition.fastingHistory(user, days ? Number(days) : 14);
+  }
+
   @Get('recipes')
   recipes(@Query('q') q?: string) {
     return this.nutrition.listRecipes(q);

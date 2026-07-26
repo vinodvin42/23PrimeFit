@@ -23,6 +23,8 @@ type OffProduct = {
 @Injectable()
 export class NutritionService {
   private readonly logger = new Logger(NutritionService.name);
+  private readonly fastingDisclaimer =
+    'Fasting windows are a personal wellness log, not medical advice — check with a healthcare professional before starting any fasting protocol, especially if pregnant, diabetic, or on medication.';
 
   constructor(
     private readonly prisma: PrismaService,
@@ -438,6 +440,65 @@ export class NutritionService {
       where: { supplementId: id, dateKey },
     });
     return { supplementId: id, dateKey, takenToday: false };
+  }
+
+  async fastingCurrent(user: AuthUser) {
+    const session = await this.prisma.fastingSession.findFirst({
+      where: { userId: user.id, endedAt: null },
+      orderBy: { startedAt: 'desc' },
+    });
+    return {
+      session,
+      elapsedHours: session
+        ? (Date.now() - session.startedAt.getTime()) / 3600000
+        : 0,
+      disclaimer: this.fastingDisclaimer,
+    };
+  }
+
+  async startFasting(user: AuthUser, targetHours?: number) {
+    const active = await this.prisma.fastingSession.findFirst({
+      where: { userId: user.id, endedAt: null },
+    });
+    if (active) {
+      throw new BadRequestException('A fasting session is already active');
+    }
+    return this.prisma.fastingSession.create({
+      data: {
+        userId: user.id,
+        targetHours: targetHours && targetHours > 0 ? targetHours : 16,
+      },
+    });
+  }
+
+  async endFasting(user: AuthUser) {
+    const active = await this.prisma.fastingSession.findFirst({
+      where: { userId: user.id, endedAt: null },
+    });
+    if (!active) {
+      throw new NotFoundException('No active fasting session');
+    }
+    return this.prisma.fastingSession.update({
+      where: { id: active.id },
+      data: { endedAt: new Date() },
+    });
+  }
+
+  async fastingHistory(user: AuthUser, days = 14) {
+    const from = new Date(Date.now() - days * 86400000);
+    const sessions = await this.prisma.fastingSession.findMany({
+      where: { userId: user.id, startedAt: { gte: from } },
+      orderBy: { startedAt: 'desc' },
+    });
+    return {
+      disclaimer: this.fastingDisclaimer,
+      sessions: sessions.map((s) => ({
+        ...s,
+        durationHours: s.endedAt
+          ? (s.endedAt.getTime() - s.startedAt.getTime()) / 3600000
+          : null,
+      })),
+    };
   }
 
   async addLog(
