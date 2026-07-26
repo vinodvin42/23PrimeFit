@@ -51,6 +51,16 @@ type Coupon = {
   active: boolean;
 };
 
+type MembershipPlan = {
+  id: string;
+  name: string;
+  description?: string | null;
+  priceInr: number;
+  durationDays?: number | null;
+  sessionCount?: number | null;
+  active: boolean;
+};
+
 const STAGES = ['lead', 'qualified', 'proposal', 'active', 'paused'] as const;
 
 function stageLabel(stage: string) {
@@ -92,6 +102,11 @@ export default function CrmPage() {
     'PERCENT',
   );
   const [newCouponValue, setNewCouponValue] = useState('10');
+  const [membershipPlans, setMembershipPlans] = useState<MembershipPlan[]>([]);
+  const [newPlanName, setNewPlanName] = useState('');
+  const [newPlanPrice, setNewPlanPrice] = useState('5000');
+  const [newPlanSessions, setNewPlanSessions] = useState('');
+  const [newPlanDuration, setNewPlanDuration] = useState('');
 
   const loadCoupons = useCallback(async () => {
     const rows = await api<Coupon[]>('/crm/coupons');
@@ -125,6 +140,70 @@ export default function CrmPage() {
     try {
       await api(`/crm/coupons/${id}/deactivate`, { method: 'PATCH' });
       await loadCoupons();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setSaving(null);
+    }
+  }
+
+  const loadMembershipPlans = useCallback(async () => {
+    const rows = await api<MembershipPlan[]>('/crm/membership-plans');
+    setMembershipPlans(rows);
+  }, [api]);
+
+  async function createMembershipPlan() {
+    if (!newPlanName.trim()) return;
+    setSaving('plan');
+    try {
+      await api('/crm/membership-plans', {
+        method: 'POST',
+        body: JSON.stringify({
+          name: newPlanName.trim(),
+          priceInr: Number(newPlanPrice) || 5000,
+          sessionCount: newPlanSessions.trim()
+            ? Number(newPlanSessions)
+            : undefined,
+          durationDays: newPlanDuration.trim()
+            ? Number(newPlanDuration)
+            : undefined,
+        }),
+      });
+      setNewPlanName('');
+      setNewPlanSessions('');
+      setNewPlanDuration('');
+      setNotice(`Plan "${newPlanName.trim()}" created.`);
+      await loadMembershipPlans();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setSaving(null);
+    }
+  }
+
+  async function deactivateMembershipPlan(id: string) {
+    setSaving(`plan-${id}`);
+    try {
+      await api(`/crm/membership-plans/${id}/deactivate`, {
+        method: 'PATCH',
+      });
+      await loadMembershipPlans();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setSaving(null);
+    }
+  }
+
+  async function enrollSelectedLead(planId: string) {
+    if (!selectedId) return;
+    setSaving(`enroll-${planId}`);
+    try {
+      await api(`/crm/leads/${selectedId}/enroll`, {
+        method: 'POST',
+        body: JSON.stringify({ planId }),
+      });
+      setNotice('Lead enrolled in membership plan.');
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
     } finally {
@@ -170,6 +249,7 @@ export default function CrmPage() {
         if (initial) await loadDetail(initial);
         else setDetail(null);
         await loadCoupons();
+        await loadMembershipPlans();
       } catch (err) {
         setError(err instanceof Error ? err.message : String(err));
       }
@@ -799,6 +879,145 @@ export default function CrmPage() {
                                     Inactive
                                   </span>
                                 )}
+                              </li>
+                            ))}
+                          </ul>
+                        )}
+                      </div>
+                    </div>
+                  </section>
+
+                  <section className={styles.assignmentCatalog}>
+                    <header>
+                      <div>
+                        <h3>Membership plans</h3>
+                        <p>
+                          Recurring or session-pack packages clients enroll
+                          into — separate from 23PrimeFit&apos;s own SaaS
+                          subscription plans.
+                        </p>
+                      </div>
+                      <span>Commerce</span>
+                    </header>
+                    <div className={styles.assignmentColumns}>
+                      <div className={styles.suiteFormColumn}>
+                        <div className={styles.assignmentColumnTitle}>
+                          <span>
+                            <Icon name="plus" size={17} />
+                          </span>
+                          <div>
+                            <h4>New plan</h4>
+                            <p>Leave sessions or duration blank for unlimited</p>
+                          </div>
+                        </div>
+                        <label className={styles.label}>
+                          Name
+                          <input
+                            className={styles.input}
+                            value={newPlanName}
+                            onChange={(e) => setNewPlanName(e.target.value)}
+                            placeholder="e.g. 12-Session Pack"
+                          />
+                        </label>
+                        <label className={styles.label}>
+                          Price (INR)
+                          <input
+                            className={styles.input}
+                            value={newPlanPrice}
+                            onChange={(e) => setNewPlanPrice(e.target.value)}
+                            inputMode="numeric"
+                          />
+                        </label>
+                        <label className={styles.label}>
+                          Session count (optional)
+                          <input
+                            className={styles.input}
+                            value={newPlanSessions}
+                            onChange={(e) =>
+                              setNewPlanSessions(e.target.value)
+                            }
+                            inputMode="numeric"
+                          />
+                        </label>
+                        <label className={styles.label}>
+                          Duration in days (optional)
+                          <input
+                            className={styles.input}
+                            value={newPlanDuration}
+                            onChange={(e) =>
+                              setNewPlanDuration(e.target.value)
+                            }
+                            inputMode="numeric"
+                          />
+                        </label>
+                        <button
+                          className={styles.assignSelectedButton}
+                          type="button"
+                          onClick={createMembershipPlan}
+                          disabled={saving === 'plan'}
+                        >
+                          <Icon name="check" size={15} />
+                          {saving === 'plan' ? 'Creating…' : 'Create plan'}
+                        </button>
+                      </div>
+                      <div className={styles.suiteFormColumn}>
+                        <div className={styles.assignmentColumnTitle}>
+                          <span>
+                            <Icon name="activity" size={17} />
+                          </span>
+                          <div>
+                            <h4>Plans</h4>
+                            <p>
+                              {membershipPlans.length === 0
+                                ? 'None yet'
+                                : `${membershipPlans.length} active`}
+                            </p>
+                          </div>
+                        </div>
+                        {membershipPlans.length === 0 ? (
+                          <p className={styles.hint}>
+                            Create a plan, then enroll the selected lead
+                            below.
+                          </p>
+                        ) : (
+                          <ul className={styles.suiteList}>
+                            {membershipPlans.map((p) => (
+                              <li key={p.id}>
+                                <div>
+                                  <strong>{p.name}</strong>
+                                  <small>
+                                    ₹{p.priceInr.toLocaleString()}
+                                    {p.sessionCount
+                                      ? ` · ${p.sessionCount} sessions`
+                                      : ''}
+                                    {p.durationDays
+                                      ? ` · ${p.durationDays} days`
+                                      : ''}
+                                  </small>
+                                </div>
+                                <div className={styles.inlineActions}>
+                                  <button
+                                    type="button"
+                                    className={styles.secondaryButton}
+                                    onClick={() => enrollSelectedLead(p.id)}
+                                    disabled={
+                                      !selectedId ||
+                                      saving === `enroll-${p.id}`
+                                    }
+                                  >
+                                    Enroll lead
+                                  </button>
+                                  <button
+                                    type="button"
+                                    className={styles.secondaryButton}
+                                    onClick={() =>
+                                      deactivateMembershipPlan(p.id)
+                                    }
+                                    disabled={saving === `plan-${p.id}`}
+                                  >
+                                    Deactivate
+                                  </button>
+                                </div>
                               </li>
                             ))}
                           </ul>

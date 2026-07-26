@@ -891,6 +891,8 @@ model Tenant {
   challengeParticipants  ChallengeParticipant[]
   achievements           Achievement[]
   tenantCoupons          TenantCoupon[]
+  membershipPlans        MembershipPlan[]
+  membershipEnrollments  MembershipEnrollment[]
 
   @@index([type, active])
   @@index([ownerUserId])
@@ -1542,4 +1544,48 @@ model TenantCoupon {
 
   @@unique([tenantId, code])
   @@index([tenantId, active])
+}
+
+enum MembershipEnrollmentStatus {
+  ACTIVE
+  EXPIRED
+  CANCELLED
+}
+
+/// Business: a coach's recurring or session-pack package clients enroll into.
+/// Distinct from the platform Plan/Subscription model, which is 23PrimeFit's
+/// own SaaS billing for the coach's tenant subscription.
+model MembershipPlan {
+  id           String   @id @default(cuid())
+  tenantId     String
+  name         String
+  description  String?
+  priceInr     Int
+  durationDays Int?
+  sessionCount Int?
+  active       Boolean  @default(true)
+  createdAt    DateTime @default(now())
+
+  tenant      Tenant                 @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  enrollments MembershipEnrollment[]
+
+  @@index([tenantId, active])
+}
+
+model MembershipEnrollment {
+  id                String                     @id @default(cuid())
+  tenantId          String
+  planId            String
+  clientId          String
+  startedAt         DateTime                   @default(now())
+  expiresAt         DateTime?
+  sessionsRemaining Int?
+  status            MembershipEnrollmentStatus @default(ACTIVE)
+  createdAt         DateTime                   @default(now())
+
+  tenant Tenant         @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  plan   MembershipPlan @relation(fields: [planId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, clientId])
+  @@index([planId])
 }

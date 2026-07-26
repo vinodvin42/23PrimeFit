@@ -115,3 +115,118 @@ describe('CrmService coupons', () => {
     ).rejects.toBeInstanceOf(ForbiddenException);
   });
 });
+
+describe('CrmService membership plans', () => {
+  it('rejects a plan with a blank name', async () => {
+    const service = makeService({});
+
+    await expect(
+      service.createMembershipPlan({ id: 'user-1' } as never, {
+        name: '  ',
+        priceInr: 5000,
+      }),
+    ).rejects.toBeInstanceOf(BadRequestException);
+  });
+
+  it('rejects a plan with a non-positive price', async () => {
+    const service = makeService({});
+
+    await expect(
+      service.createMembershipPlan({ id: 'user-1' } as never, {
+        name: '12-session pack',
+        priceInr: 0,
+      }),
+    ).rejects.toBeInstanceOf(BadRequestException);
+  });
+
+  it('enrolling a lead seeds sessionsRemaining from the plan', async () => {
+    const create = jest
+      .fn<
+        Promise<{ id: string }>,
+        [{ data: { sessionsRemaining?: number | null } }]
+      >()
+      .mockResolvedValue({ id: 'enrollment-1' });
+    const prisma = {
+      crmLead: {
+        findFirst: jest
+          .fn()
+          .mockResolvedValue({ id: 'lead-1', clientUserId: 'client-1' }),
+      },
+      membershipPlan: {
+        findFirst: jest.fn().mockResolvedValue({
+          id: 'plan-1',
+          sessionCount: 12,
+          durationDays: null,
+        }),
+      },
+      membershipEnrollment: { create },
+    };
+    const service = makeService(prisma);
+
+    await service.enrollLead({ id: 'user-1' } as never, 'lead-1', {
+      planId: 'plan-1',
+    });
+
+    expect(create).toHaveBeenCalledTimes(1);
+    expect(create.mock.calls[0][0].data.sessionsRemaining).toBe(12);
+  });
+
+  it('rejects enrolling a lead with no linked client and no clientId given', async () => {
+    const prisma = {
+      crmLead: {
+        findFirst: jest
+          .fn()
+          .mockResolvedValue({ id: 'lead-1', clientUserId: null }),
+      },
+      membershipPlan: {
+        findFirst: jest.fn().mockResolvedValue({ id: 'plan-1' }),
+      },
+    };
+    const service = makeService(prisma);
+
+    await expect(
+      service.enrollLead({ id: 'user-1' } as never, 'lead-1', {
+        planId: 'plan-1',
+      }),
+    ).rejects.toBeInstanceOf(BadRequestException);
+  });
+
+  it('marks an enrollment EXPIRED once the last session is consumed', async () => {
+    const update = jest.fn().mockResolvedValue({});
+    const prisma = {
+      membershipEnrollment: {
+        findFirst: jest.fn().mockResolvedValue({
+          id: 'enrollment-1',
+          status: 'ACTIVE',
+          sessionsRemaining: 1,
+        }),
+        update,
+      },
+    };
+    const service = makeService(prisma);
+
+    await service.consumeSession({ id: 'user-1' } as never, 'enrollment-1');
+
+    expect(update).toHaveBeenCalledWith({
+      where: { id: 'enrollment-1' },
+      data: { sessionsRemaining: 0, status: 'EXPIRED' },
+    });
+  });
+
+  it('rejects consuming a session with none remaining', async () => {
+    const prisma = {
+      membershipEnrollment: {
+        findFirst: jest.fn().mockResolvedValue({
+          id: 'enrollment-1',
+          status: 'ACTIVE',
+          sessionsRemaining: 0,
+        }),
+      },
+    };
+    const service = makeService(prisma);
+
+    await expect(
+      service.consumeSession({ id: 'user-1' } as never, 'enrollment-1'),
+    ).rejects.toBeInstanceOf(BadRequestException);
+  });
+});

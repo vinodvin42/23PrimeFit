@@ -206,6 +206,131 @@ export class CrmService {
     });
   }
 
+  async listMembershipPlans(user: AuthUser, tenant?: string) {
+    const tenantId = await this.tenantId(user, tenant);
+    return this.prisma.membershipPlan.findMany({
+      where: { tenantId, active: true },
+      orderBy: { createdAt: 'desc' },
+    });
+  }
+
+  async createMembershipPlan(
+    user: AuthUser,
+    body: {
+      name: string;
+      description?: string;
+      priceInr: number;
+      durationDays?: number;
+      sessionCount?: number;
+    },
+    tenant?: string,
+  ) {
+    const tenantId = await this.tenantId(user, tenant);
+    if (!body.name?.trim()) {
+      throw new BadRequestException('name is required');
+    }
+    if (!Number.isFinite(body.priceInr) || body.priceInr <= 0) {
+      throw new BadRequestException('priceInr must be a positive number');
+    }
+    return this.prisma.membershipPlan.create({
+      data: {
+        tenantId,
+        name: body.name.trim(),
+        description: body.description,
+        priceInr: Math.round(body.priceInr),
+        durationDays: body.durationDays,
+        sessionCount: body.sessionCount,
+      },
+    });
+  }
+
+  async deactivateMembershipPlan(user: AuthUser, id: string, tenant?: string) {
+    const tenantId = await this.tenantId(user, tenant);
+    const plan = await this.prisma.membershipPlan.findFirst({
+      where: { id, tenantId },
+    });
+    if (!plan) throw new NotFoundException('Membership plan not found');
+    return this.prisma.membershipPlan.update({
+      where: { id },
+      data: { active: false },
+    });
+  }
+
+  async enrollLead(
+    user: AuthUser,
+    leadId: string,
+    body: { planId: string; clientId?: string },
+    tenant?: string,
+  ) {
+    const tenantId = await this.tenantId(user, tenant);
+    const lead = await this.prisma.crmLead.findFirst({
+      where: { id: leadId, tenantId },
+    });
+    if (!lead) throw new ForbiddenException('Lead is outside this tenant');
+    const plan = await this.prisma.membershipPlan.findFirst({
+      where: { id: body.planId, tenantId },
+    });
+    if (!plan) throw new NotFoundException('Membership plan not found');
+    const clientId = body.clientId ?? lead.clientUserId;
+    if (!clientId) {
+      throw new BadRequestException(
+        'This lead has no linked client yet — invoice it first',
+      );
+    }
+    return this.prisma.membershipEnrollment.create({
+      data: {
+        tenantId,
+        planId: plan.id,
+        clientId,
+        expiresAt: plan.durationDays
+          ? new Date(Date.now() + plan.durationDays * 86400000)
+          : undefined,
+        sessionsRemaining: plan.sessionCount ?? undefined,
+      },
+    });
+  }
+
+  async listClientEnrollments(
+    user: AuthUser,
+    clientId: string,
+    tenant?: string,
+  ) {
+    const tenantId = await this.tenantId(user, tenant);
+    return this.prisma.membershipEnrollment.findMany({
+      where: { tenantId, clientId },
+      include: { plan: true },
+      orderBy: { createdAt: 'desc' },
+    });
+  }
+
+  async consumeSession(user: AuthUser, enrollmentId: string, tenant?: string) {
+    const tenantId = await this.tenantId(user, tenant);
+    const enrollment = await this.prisma.membershipEnrollment.findFirst({
+      where: { id: enrollmentId, tenantId },
+    });
+    if (!enrollment) throw new NotFoundException('Enrollment not found');
+    if (enrollment.status !== 'ACTIVE') {
+      throw new BadRequestException('Enrollment is not active');
+    }
+    if (
+      enrollment.sessionsRemaining !== null &&
+      enrollment.sessionsRemaining <= 0
+    ) {
+      throw new BadRequestException('No sessions remaining');
+    }
+    const sessionsRemaining =
+      enrollment.sessionsRemaining !== null
+        ? enrollment.sessionsRemaining - 1
+        : null;
+    return this.prisma.membershipEnrollment.update({
+      where: { id: enrollmentId },
+      data: {
+        sessionsRemaining,
+        status: sessionsRemaining === 0 ? 'EXPIRED' : enrollment.status,
+      },
+    });
+  }
+
   async createContract(
     user: AuthUser,
     leadId: string,
@@ -335,6 +460,67 @@ export class CrmController {
     @Param('id') id: string,
   ) {
     return this.service.deactivateCoupon(user, id, tenant);
+  }
+
+  @Get('membership-plans')
+  listMembershipPlans(
+    @CurrentUser() user: AuthUser,
+    @Headers(TENANT_HEADER) tenant?: string,
+  ) {
+    return this.service.listMembershipPlans(user, tenant);
+  }
+
+  @Post('membership-plans')
+  createMembershipPlan(
+    @CurrentUser() user: AuthUser,
+    @Headers(TENANT_HEADER) tenant: string | undefined,
+    @Body()
+    body: {
+      name: string;
+      description?: string;
+      priceInr: number;
+      durationDays?: number;
+      sessionCount?: number;
+    },
+  ) {
+    return this.service.createMembershipPlan(user, body, tenant);
+  }
+
+  @Patch('membership-plans/:id/deactivate')
+  deactivateMembershipPlan(
+    @CurrentUser() user: AuthUser,
+    @Headers(TENANT_HEADER) tenant: string | undefined,
+    @Param('id') id: string,
+  ) {
+    return this.service.deactivateMembershipPlan(user, id, tenant);
+  }
+
+  @Post('leads/:id/enroll')
+  enrollLead(
+    @CurrentUser() user: AuthUser,
+    @Headers(TENANT_HEADER) tenant: string | undefined,
+    @Param('id') id: string,
+    @Body() body: { planId: string; clientId?: string },
+  ) {
+    return this.service.enrollLead(user, id, body, tenant);
+  }
+
+  @Get('clients/:clientId/memberships')
+  listClientEnrollments(
+    @CurrentUser() user: AuthUser,
+    @Headers(TENANT_HEADER) tenant: string | undefined,
+    @Param('clientId') clientId: string,
+  ) {
+    return this.service.listClientEnrollments(user, clientId, tenant);
+  }
+
+  @Post('membership-enrollments/:id/consume-session')
+  consumeSession(
+    @CurrentUser() user: AuthUser,
+    @Headers(TENANT_HEADER) tenant: string | undefined,
+    @Param('id') id: string,
+  ) {
+    return this.service.consumeSession(user, id, tenant);
   }
 
   @Post('leads/:id/contracts')
