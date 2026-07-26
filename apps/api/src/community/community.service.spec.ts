@@ -1,4 +1,8 @@
-import { ForbiddenException } from '@nestjs/common';
+import {
+  BadRequestException,
+  ForbiddenException,
+  NotFoundException,
+} from '@nestjs/common';
 import { CommunityService } from './community.service';
 
 const tenantCtx = {
@@ -68,5 +72,83 @@ describe('CommunityService', () => {
     await expect(
       service.logProgress({ id: 'user-1' } as never, 'challenge-1', 1),
     ).rejects.toBeInstanceOf(ForbiddenException);
+  });
+});
+
+describe('CommunityService friends', () => {
+  it('rejects friending yourself', async () => {
+    const tenants = {
+      resolveActiveTenant: jest.fn().mockResolvedValue(tenantCtx),
+    };
+    const service = new CommunityService({} as never, tenants as never);
+
+    await expect(
+      service.sendFriendRequest({ id: 'user-1' } as never, 'user-1'),
+    ).rejects.toBeInstanceOf(BadRequestException);
+  });
+
+  it('rejects friending someone outside the active tenant', async () => {
+    const prisma = {
+      clientMembership: { findFirst: jest.fn().mockResolvedValue(null) },
+    };
+    const tenants = {
+      resolveActiveTenant: jest.fn().mockResolvedValue(tenantCtx),
+    };
+    const service = new CommunityService(prisma as never, tenants as never);
+
+    await expect(
+      service.sendFriendRequest({ id: 'user-1' } as never, 'user-2'),
+    ).rejects.toBeInstanceOf(NotFoundException);
+  });
+
+  it('rejects a duplicate friend request between the same two members', async () => {
+    const prisma = {
+      clientMembership: {
+        findFirst: jest.fn().mockResolvedValue({ id: 'membership-1' }),
+      },
+      friendRequest: {
+        findFirst: jest.fn().mockResolvedValue({ id: 'existing-request' }),
+      },
+    };
+    const tenants = {
+      resolveActiveTenant: jest.fn().mockResolvedValue(tenantCtx),
+    };
+    const service = new CommunityService(prisma as never, tenants as never);
+
+    await expect(
+      service.sendFriendRequest({ id: 'user-1' } as never, 'user-2'),
+    ).rejects.toBeInstanceOf(BadRequestException);
+  });
+
+  it('only lets the recipient respond to a pending request', async () => {
+    const prisma = {
+      friendRequest: { findFirst: jest.fn().mockResolvedValue(null) },
+    };
+    const tenants = {
+      resolveActiveTenant: jest.fn().mockResolvedValue(tenantCtx),
+    };
+    const service = new CommunityService(prisma as never, tenants as never);
+
+    await expect(
+      service.respondToFriendRequest(
+        { id: 'user-1' } as never,
+        'request-1',
+        true,
+      ),
+    ).rejects.toBeInstanceOf(NotFoundException);
+  });
+
+  it('rejects removing a friend connection that does not exist', async () => {
+    const prisma = {
+      friendRequest: { findFirst: jest.fn().mockResolvedValue(null) },
+    };
+    const tenants = {
+      resolveActiveTenant: jest.fn().mockResolvedValue(tenantCtx),
+    };
+    const service = new CommunityService(prisma as never, tenants as never);
+
+    await expect(
+      service.removeFriend({ id: 'user-1' } as never, 'user-2'),
+    ).rejects.toBeInstanceOf(NotFoundException);
   });
 });

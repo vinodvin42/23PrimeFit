@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:primefit_mobile/core/theme/app_theme.dart';
 import 'package:primefit_mobile/core/widgets/glass.dart';
 import 'package:primefit_mobile/features/workouts/data/fitness_repository.dart';
@@ -179,6 +180,26 @@ class _CommunityScreenState extends ConsumerState<CommunityScreen> {
                 const Text(
                   'Join challenges, climb the leaderboard, keep your streak.',
                   style: TextStyle(color: AppColors.mutedOnDark),
+                ),
+                const SizedBox(height: 12),
+                GlassCard(
+                  onTap: () => context.push('/friends'),
+                  child: const Row(
+                    children: [
+                      Icon(Icons.people_outline, color: AppColors.lime),
+                      SizedBox(width: 10),
+                      Expanded(
+                        child: Text(
+                          'Friends',
+                          style: TextStyle(
+                            color: AppColors.white,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ),
+                      Icon(Icons.chevron_right, color: AppColors.mutedOnDark),
+                    ],
+                  ),
                 ),
                 const SizedBox(height: 16),
                 if (_loading)

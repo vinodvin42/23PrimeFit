@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   ForbiddenException,
   Injectable,
   NotFoundException,
@@ -246,5 +247,163 @@ export class CommunityService {
       }
       throw err;
     }
+  }
+
+  async listTenantMembers(user: AuthUser, tenant?: string) {
+    const ctx = await this.tenants.resolveActiveTenant(user, tenant);
+    const [memberships, requests] = await Promise.all([
+      this.prisma.clientMembership.findMany({
+        where: {
+          tenantId: ctx.tenant.id,
+          status: 'ACTIVE',
+          userId: { not: user.id },
+        },
+        include: { user: { select: { id: true, displayName: true } } },
+      }),
+      this.prisma.friendRequest.findMany({
+        where: {
+          tenantId: ctx.tenant.id,
+          OR: [{ fromUserId: user.id }, { toUserId: user.id }],
+        },
+      }),
+    ]);
+    const statusByUser = new Map<
+      string,
+      { requestId: string; status: string; direction: 'sent' | 'received' }
+    >();
+    for (const r of requests) {
+      const otherId = r.fromUserId === user.id ? r.toUserId : r.fromUserId;
+      statusByUser.set(otherId, {
+        requestId: r.id,
+        status: r.status,
+        direction: r.fromUserId === user.id ? 'sent' : 'received',
+      });
+    }
+    return memberships.map((m) => ({
+      userId: m.userId,
+      displayName: m.user.displayName,
+      friendStatus: statusByUser.get(m.userId) ?? null,
+    }));
+  }
+
+  async sendFriendRequest(user: AuthUser, toUserId: string, tenant?: string) {
+    const ctx = await this.tenants.resolveActiveTenant(user, tenant);
+    if (toUserId === user.id) {
+      throw new BadRequestException('You cannot friend yourself');
+    }
+    const membership = await this.prisma.clientMembership.findFirst({
+      where: { tenantId: ctx.tenant.id, userId: toUserId, status: 'ACTIVE' },
+    });
+    if (!membership) {
+      throw new NotFoundException('That member is not in this workspace');
+    }
+    const existing = await this.prisma.friendRequest.findFirst({
+      where: {
+        tenantId: ctx.tenant.id,
+        OR: [
+          { fromUserId: user.id, toUserId },
+          { fromUserId: toUserId, toUserId: user.id },
+        ],
+      },
+    });
+    if (existing) {
+      throw new BadRequestException(
+        'A friend request already exists with this member',
+      );
+    }
+    return this.prisma.friendRequest.create({
+      data: { tenantId: ctx.tenant.id, fromUserId: user.id, toUserId },
+    });
+  }
+
+  async respondToFriendRequest(
+    user: AuthUser,
+    requestId: string,
+    accept: boolean,
+    tenant?: string,
+  ) {
+    const ctx = await this.tenants.resolveActiveTenant(user, tenant);
+    const request = await this.prisma.friendRequest.findFirst({
+      where: {
+        id: requestId,
+        tenantId: ctx.tenant.id,
+        toUserId: user.id,
+        status: 'PENDING',
+      },
+    });
+    if (!request) throw new NotFoundException('Friend request not found');
+    return this.prisma.friendRequest.update({
+      where: { id: requestId },
+      data: {
+        status: accept ? 'ACCEPTED' : 'DECLINED',
+        respondedAt: new Date(),
+      },
+    });
+  }
+
+  async listFriends(user: AuthUser, tenant?: string) {
+    const ctx = await this.tenants.resolveActiveTenant(user, tenant);
+    const [accepted, pendingReceived, pendingSent] = await Promise.all([
+      this.prisma.friendRequest.findMany({
+        where: {
+          tenantId: ctx.tenant.id,
+          status: 'ACCEPTED',
+          OR: [{ fromUserId: user.id }, { toUserId: user.id }],
+        },
+        include: {
+          fromUser: { select: { id: true, displayName: true } },
+          toUser: { select: { id: true, displayName: true } },
+        },
+      }),
+      this.prisma.friendRequest.findMany({
+        where: {
+          tenantId: ctx.tenant.id,
+          toUserId: user.id,
+          status: 'PENDING',
+        },
+        include: { fromUser: { select: { id: true, displayName: true } } },
+      }),
+      this.prisma.friendRequest.findMany({
+        where: {
+          tenantId: ctx.tenant.id,
+          fromUserId: user.id,
+          status: 'PENDING',
+        },
+        include: { toUser: { select: { id: true, displayName: true } } },
+      }),
+    ]);
+    return {
+      friends: accepted.map((r) => {
+        const other = r.fromUserId === user.id ? r.toUser : r.fromUser;
+        return { userId: other.id, displayName: other.displayName };
+      }),
+      pendingReceived: pendingReceived.map((r) => ({
+        requestId: r.id,
+        userId: r.fromUser.id,
+        displayName: r.fromUser.displayName,
+      })),
+      pendingSent: pendingSent.map((r) => ({
+        requestId: r.id,
+        userId: r.toUser.id,
+        displayName: r.toUser.displayName,
+      })),
+    };
+  }
+
+  async removeFriend(user: AuthUser, friendUserId: string, tenant?: string) {
+    const ctx = await this.tenants.resolveActiveTenant(user, tenant);
+    const request = await this.prisma.friendRequest.findFirst({
+      where: {
+        tenantId: ctx.tenant.id,
+        status: 'ACCEPTED',
+        OR: [
+          { fromUserId: user.id, toUserId: friendUserId },
+          { fromUserId: friendUserId, toUserId: user.id },
+        ],
+      },
+    });
+    if (!request) throw new NotFoundException('Friend connection not found');
+    await this.prisma.friendRequest.delete({ where: { id: request.id } });
+    return { removed: true };
   }
 }

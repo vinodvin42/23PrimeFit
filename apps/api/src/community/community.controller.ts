@@ -1,6 +1,7 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
   Headers,
   Param,
@@ -99,5 +100,57 @@ export class CommunityController {
     @Headers(TENANT_HEADER) tenant?: string,
   ) {
     return this.community.streak(user, tenant);
+  }
+
+  @Get('members')
+  listTenantMembers(
+    @CurrentUser() user: AuthUser,
+    @Headers(TENANT_HEADER) tenant?: string,
+  ) {
+    return this.community.listTenantMembers(user, tenant);
+  }
+
+  @Get('friends')
+  listFriends(
+    @CurrentUser() user: AuthUser,
+    @Headers(TENANT_HEADER) tenant?: string,
+  ) {
+    return this.community.listFriends(user, tenant);
+  }
+
+  @Post('friends/requests')
+  sendFriendRequest(
+    @CurrentUser() user: AuthUser,
+    @Headers(TENANT_HEADER) tenant: string | undefined,
+    @Body() body: { toUserId: string },
+  ) {
+    return this.community.sendFriendRequest(user, body.toUserId, tenant);
+  }
+
+  @Post('friends/requests/:id/accept')
+  acceptFriendRequest(
+    @CurrentUser() user: AuthUser,
+    @Headers(TENANT_HEADER) tenant: string | undefined,
+    @Param('id') id: string,
+  ) {
+    return this.community.respondToFriendRequest(user, id, true, tenant);
+  }
+
+  @Post('friends/requests/:id/decline')
+  declineFriendRequest(
+    @CurrentUser() user: AuthUser,
+    @Headers(TENANT_HEADER) tenant: string | undefined,
+    @Param('id') id: string,
+  ) {
+    return this.community.respondToFriendRequest(user, id, false, tenant);
+  }
+
+  @Delete('friends/:userId')
+  removeFriend(
+    @CurrentUser() user: AuthUser,
+    @Headers(TENANT_HEADER) tenant: string | undefined,
+    @Param('userId') userId: string,
+  ) {
+    return this.community.removeFriend(user, userId, tenant);
   }
 }

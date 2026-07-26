@@ -707,6 +707,39 @@ class FitnessRepository {
     return res.data!;
   }
 
+  Future<List<Map<String, dynamic>>> listTenantMembers() async {
+    final res = await _dio.get<List<dynamic>>('/community/members');
+    return (res.data ?? []).whereType<Map<String, dynamic>>().toList();
+  }
+
+  Future<Map<String, dynamic>> listFriends() async {
+    final res = await _dio.get<Map<String, dynamic>>('/community/friends');
+    return res.data!;
+  }
+
+  Future<void> sendFriendRequest(String toUserId) async {
+    await _dio.post<Map<String, dynamic>>(
+      '/community/friends/requests',
+      data: {'toUserId': toUserId},
+    );
+  }
+
+  Future<void> acceptFriendRequest(String requestId) async {
+    await _dio.post<Map<String, dynamic>>(
+      '/community/friends/requests/$requestId/accept',
+    );
+  }
+
+  Future<void> declineFriendRequest(String requestId) async {
+    await _dio.post<Map<String, dynamic>>(
+      '/community/friends/requests/$requestId/decline',
+    );
+  }
+
+  Future<void> removeFriend(String userId) async {
+    await _dio.delete('/community/friends/$userId');
+  }
+
   Future<Map<String, dynamic>> aiDashboard() async {
     final res = await _dio.get<Map<String, dynamic>>('/ai/dashboard');
     return res.data!;
@@ -931,6 +964,16 @@ final shoppingListProvider =
 final medicationsProvider =
     FutureProvider.autoDispose<Map<String, dynamic>>((ref) {
   return ref.watch(fitnessRepositoryProvider).listMedications();
+});
+
+final tenantMembersProvider =
+    FutureProvider.autoDispose<List<Map<String, dynamic>>>((ref) {
+  return ref.watch(fitnessRepositoryProvider).listTenantMembers();
+});
+
+final friendsProvider =
+    FutureProvider.autoDispose<Map<String, dynamic>>((ref) {
+  return ref.watch(fitnessRepositoryProvider).listFriends();
 });
 
 final bloodPressureProvider =

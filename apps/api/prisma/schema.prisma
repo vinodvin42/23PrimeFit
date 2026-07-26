@@ -157,6 +157,8 @@ model User {
   allergies             Allergy[]
   vaccinations          Vaccination[]
   bodyMeasurements      BodyMeasurement[]
+  sentFriendRequests     FriendRequest[] @relation("FriendRequestsSent")
+  receivedFriendRequests FriendRequest[] @relation("FriendRequestsReceived")
 }
 
 model Profile {
@@ -893,6 +895,7 @@ model Tenant {
   tenantCoupons          TenantCoupon[]
   membershipPlans        MembershipPlan[]
   membershipEnrollments  MembershipEnrollment[]
+  friendRequests         FriendRequest[]
 
   @@index([type, active])
   @@index([ownerUserId])
@@ -1588,4 +1591,30 @@ model MembershipEnrollment {
 
   @@index([tenantId, clientId])
   @@index([planId])
+}
+
+enum FriendRequestStatus {
+  PENDING
+  ACCEPTED
+  DECLINED
+}
+
+/// Community: same-tenant-only friend connection between two members of one workspace.
+/// Never crosses tenants — a client of Tenant A can never see or friend a client of Tenant B.
+model FriendRequest {
+  id          String              @id @default(cuid())
+  tenantId    String
+  fromUserId  String
+  toUserId    String
+  status      FriendRequestStatus @default(PENDING)
+  createdAt   DateTime            @default(now())
+  respondedAt DateTime?
+
+  tenant   Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  fromUser User   @relation("FriendRequestsSent", fields: [fromUserId], references: [id], onDelete: Cascade)
+  toUser   User   @relation("FriendRequestsReceived", fields: [toUserId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, fromUserId, toUserId])
+  @@index([tenantId, toUserId, status])
+  @@index([tenantId, fromUserId, status])
 }
