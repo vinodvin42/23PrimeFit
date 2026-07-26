@@ -150,6 +150,8 @@ model User {
   supplementLogs        SupplementLog[]
   fastingSessions       FastingSession[]
   shoppingListItems     ShoppingListItem[]
+  medications           Medication[]
+  medicationLogs        MedicationLog[]
 }
 
 model Profile {
@@ -1389,4 +1391,35 @@ model ShoppingListItem {
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId, checked])
+}
+
+/// Health: user-defined medication reminder list (personal log, not a prescription or medical record).
+model Medication {
+  id        String   @id @default(cuid())
+  userId    String
+  name      String
+  dosage    String?
+  schedule  String?
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  logs MedicationLog[]
+
+  @@index([userId, active])
+}
+
+model MedicationLog {
+  id           String   @id @default(cuid())
+  userId       String
+  medicationId String
+  takenAt      DateTime @default(now())
+  dateKey      String
+
+  user       User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  medication Medication @relation(fields: [medicationId], references: [id], onDelete: Cascade)
+
+  @@unique([medicationId, dateKey])
+  @@index([userId, dateKey])
 }

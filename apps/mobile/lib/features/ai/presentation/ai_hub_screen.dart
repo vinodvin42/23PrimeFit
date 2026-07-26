@@ -202,6 +202,12 @@ class _AiHubScreenState extends ConsumerState<AiHubScreen> {
                       subtitle: 'Challenges & streaks',
                       onTap: () => context.push('/community'),
                     ),
+                    _MiniSuggestionCard(
+                      icon: Icons.medication_outlined,
+                      title: 'Medications',
+                      subtitle: 'Reminder log, not a prescription',
+                      onTap: () => context.push('/medications'),
+                    ),
                   ],
                 ),
               ),

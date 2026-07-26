@@ -367,6 +367,38 @@ class FitnessRepository {
     );
   }
 
+  Future<Map<String, dynamic>> listMedications() async {
+    final res = await _dio.get<Map<String, dynamic>>('/medications');
+    return res.data!;
+  }
+
+  Future<void> createMedication({
+    required String name,
+    String? dosage,
+    String? schedule,
+  }) async {
+    await _dio.post<Map<String, dynamic>>(
+      '/medications',
+      data: {
+        'name': name,
+        if (dosage != null && dosage.isNotEmpty) 'dosage': dosage,
+        if (schedule != null && schedule.isNotEmpty) 'schedule': schedule,
+      },
+    );
+  }
+
+  Future<void> deactivateMedication(String id) async {
+    await _dio.patch<Map<String, dynamic>>('/medications/$id/deactivate');
+  }
+
+  Future<void> logMedicationTaken(String id) async {
+    await _dio.post<Map<String, dynamic>>('/medications/$id/log');
+  }
+
+  Future<void> unlogMedicationTaken(String id) async {
+    await _dio.delete('/medications/$id/log');
+  }
+
   Future<List<RecipeItem>> listRecipes([String? q]) async {
     final res = await _dio.get<List<dynamic>>(
       '/nutrition/recipes',
@@ -758,6 +790,11 @@ final fastingCurrentProvider =
 final shoppingListProvider =
     FutureProvider.autoDispose<List<Map<String, dynamic>>>((ref) {
   return ref.watch(fitnessRepositoryProvider).listShoppingList();
+});
+
+final medicationsProvider =
+    FutureProvider.autoDispose<Map<String, dynamic>>((ref) {
+  return ref.watch(fitnessRepositoryProvider).listMedications();
 });
 
 final recoveryTodayProvider = FutureProvider.autoDispose<RecoveryToday>((ref) {
