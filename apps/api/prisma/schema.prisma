@@ -890,6 +890,7 @@ model Tenant {
   challenges             Challenge[]
   challengeParticipants  ChallengeParticipant[]
   achievements           Achievement[]
+  tenantCoupons          TenantCoupon[]
 
   @@index([type, active])
   @@index([ownerUserId])
@@ -1515,4 +1516,30 @@ model BodyMeasurement {
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId, recordedAt])
+}
+
+enum TenantCouponDiscountType {
+  PERCENT
+  FIXED
+}
+
+/// Business: tenant-scoped discount code a coach applies to their own client package
+/// invoices — distinct from the platform-level Coupon model above (23PrimeFit's SaaS
+/// billing discount for a coach's own subscription). Never mix the two.
+model TenantCoupon {
+  id              String                   @id @default(cuid())
+  tenantId        String
+  code            String
+  discountType    TenantCouponDiscountType @default(PERCENT)
+  discountValue   Float
+  maxRedemptions  Int?
+  redemptionCount Int                      @default(0)
+  expiresAt       DateTime?
+  active          Boolean                  @default(true)
+  createdAt       DateTime                 @default(now())
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, code])
+  @@index([tenantId, active])
 }
