@@ -214,6 +214,12 @@ class _AiHubScreenState extends ConsumerState<AiHubScreen> {
                       subtitle: 'Blood pressure & sugar trends',
                       onTap: () => context.push('/vitals'),
                     ),
+                    _MiniSuggestionCard(
+                      icon: Icons.timeline_outlined,
+                      title: 'Health Timeline',
+                      subtitle: 'Everything you\'ve logged, in one view',
+                      onTap: () => context.push('/health-timeline'),
+                    ),
                   ],
                 ),
               ),

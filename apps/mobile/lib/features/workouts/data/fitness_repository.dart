@@ -530,6 +530,11 @@ class FitnessRepository {
     await _dio.delete('/vitals/measurements/$id');
   }
 
+  Future<Map<String, dynamic>> healthTimeline() async {
+    final res = await _dio.get<Map<String, dynamic>>('/vitals/timeline');
+    return res.data!;
+  }
+
   Future<List<RecipeItem>> listRecipes([String? q]) async {
     final res = await _dio.get<List<dynamic>>(
       '/nutrition/recipes',
@@ -951,6 +956,11 @@ final vaccinationsProvider =
 final bodyMeasurementsProvider =
     FutureProvider.autoDispose<Map<String, dynamic>>((ref) {
   return ref.watch(fitnessRepositoryProvider).listBodyMeasurements();
+});
+
+final healthTimelineProvider =
+    FutureProvider.autoDispose<Map<String, dynamic>>((ref) {
+  return ref.watch(fitnessRepositoryProvider).healthTimeline();
 });
 
 final recoveryTodayProvider = FutureProvider.autoDispose<RecoveryToday>((ref) {

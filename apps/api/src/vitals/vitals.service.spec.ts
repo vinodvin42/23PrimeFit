@@ -187,3 +187,49 @@ describe('VitalsService body measurements', () => {
     ).rejects.toBeInstanceOf(NotFoundException);
   });
 });
+
+describe('VitalsService timeline', () => {
+  it('merges every health source into one list sorted newest-first', async () => {
+    const prisma = {
+      bloodReport: {
+        findMany: jest.fn().mockResolvedValue([
+          {
+            id: 'br-1',
+            title: 'Annual panel',
+            createdAt: new Date('2026-01-10'),
+          },
+        ]),
+      },
+      progressPhoto: {
+        findMany: jest
+          .fn()
+          .mockResolvedValue([
+            { id: 'pp-1', pose: 'front', takenAt: new Date('2026-03-01') },
+          ]),
+      },
+      bloodPressureReading: {
+        findMany: jest.fn().mockResolvedValue([
+          {
+            id: 'bp-1',
+            systolic: 120,
+            diastolic: 80,
+            recordedAt: new Date('2026-02-15'),
+          },
+        ]),
+      },
+      bloodSugarReading: { findMany: jest.fn().mockResolvedValue([]) },
+      allergy: { findMany: jest.fn().mockResolvedValue([]) },
+      vaccination: { findMany: jest.fn().mockResolvedValue([]) },
+      bodyMeasurement: { findMany: jest.fn().mockResolvedValue([]) },
+    };
+    const service = new VitalsService(prisma as never);
+
+    const result = await service.getTimeline({ id: 'user-1' } as never);
+
+    expect(result.events.map((e) => e.kind)).toEqual([
+      'progress_photo',
+      'blood_pressure',
+      'blood_report',
+    ]);
+  });
+});

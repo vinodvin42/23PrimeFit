@@ -21,6 +21,13 @@ type BodyMeasurementInput = {
   notes?: string;
 };
 
+type TimelineEvent = {
+  id: string;
+  kind: string;
+  title: string;
+  occurredAt: Date;
+};
+
 @Injectable()
 export class VitalsService {
   constructor(private readonly prisma: PrismaService) {}
@@ -257,5 +264,91 @@ export class VitalsService {
     if (!measurement) throw new NotFoundException('Measurement not found');
     await this.prisma.bodyMeasurement.delete({ where: { id } });
     return { id };
+  }
+
+  async getTimeline(user: AuthUser, days = 365) {
+    const from = new Date(Date.now() - days * 86400000);
+    const [
+      bloodReports,
+      photos,
+      bloodPressure,
+      bloodSugar,
+      allergies,
+      vaccinations,
+      measurements,
+    ] = await Promise.all([
+      this.prisma.bloodReport.findMany({
+        where: { userId: user.id, createdAt: { gte: from } },
+      }),
+      this.prisma.progressPhoto.findMany({
+        where: { userId: user.id, takenAt: { gte: from } },
+      }),
+      this.prisma.bloodPressureReading.findMany({
+        where: { userId: user.id, recordedAt: { gte: from } },
+      }),
+      this.prisma.bloodSugarReading.findMany({
+        where: { userId: user.id, recordedAt: { gte: from } },
+      }),
+      this.prisma.allergy.findMany({
+        where: { userId: user.id, createdAt: { gte: from } },
+      }),
+      this.prisma.vaccination.findMany({
+        where: { userId: user.id, administeredAt: { gte: from } },
+      }),
+      this.prisma.bodyMeasurement.findMany({
+        where: { userId: user.id, recordedAt: { gte: from } },
+      }),
+    ]);
+
+    const events: TimelineEvent[] = [
+      ...bloodReports.map((r) => ({
+        id: r.id,
+        kind: 'blood_report',
+        title: `Blood report: ${r.title}`,
+        occurredAt: r.createdAt,
+      })),
+      ...photos.map((p) => ({
+        id: p.id,
+        kind: 'progress_photo',
+        title: `Progress photo (${p.pose})`,
+        occurredAt: p.takenAt,
+      })),
+      ...bloodPressure.map((r) => ({
+        id: r.id,
+        kind: 'blood_pressure',
+        title: `Blood pressure ${r.systolic}/${r.diastolic}`,
+        occurredAt: r.recordedAt,
+      })),
+      ...bloodSugar.map((r) => ({
+        id: r.id,
+        kind: 'blood_sugar',
+        title: `Blood sugar ${r.valueMgDl} mg/dL`,
+        occurredAt: r.recordedAt,
+      })),
+      ...allergies.map((a) => ({
+        id: a.id,
+        kind: 'allergy',
+        title: `Allergy logged: ${a.allergen}`,
+        occurredAt: a.createdAt,
+      })),
+      ...vaccinations.map((v) => ({
+        id: v.id,
+        kind: 'vaccination',
+        title: `Vaccination: ${v.name}`,
+        occurredAt: v.administeredAt,
+      })),
+      ...measurements.map((m) => ({
+        id: m.id,
+        kind: 'body_measurement',
+        title: 'Body measurement logged',
+        occurredAt: m.recordedAt,
+      })),
+    ].sort((a, b) => b.occurredAt.getTime() - a.occurredAt.getTime());
+
+    return {
+      disclaimer:
+        'A personal timeline of what you logged — not a clinical medical record.',
+      events,
+    };
   }
 }

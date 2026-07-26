@@ -142,4 +142,9 @@ export class VitalsController {
   ) {
     return this.vitals.removeBodyMeasurement(user, id);
   }
+
+  @Get('timeline')
+  getTimeline(@CurrentUser() user: AuthUser, @Query('days') days?: string) {
+    return this.vitals.getTimeline(user, days ? Number(days) : 365);
+  }
 }
