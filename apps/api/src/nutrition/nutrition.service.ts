@@ -501,6 +501,77 @@ export class NutritionService {
     };
   }
 
+  async listShoppingList(user: AuthUser) {
+    return this.prisma.shoppingListItem.findMany({
+      where: { userId: user.id },
+      orderBy: [{ checked: 'asc' }, { createdAt: 'asc' }],
+    });
+  }
+
+  async addShoppingListItem(
+    user: AuthUser,
+    body: { name: string; quantity?: string },
+  ) {
+    if (!body.name?.trim()) {
+      throw new BadRequestException('name is required');
+    }
+    return this.prisma.shoppingListItem.create({
+      data: {
+        userId: user.id,
+        name: body.name.trim(),
+        quantity: body.quantity,
+        source: 'manual',
+      },
+    });
+  }
+
+  async addShoppingListItemsFromRecipe(user: AuthUser, slug: string) {
+    const recipe = await this.getRecipe(slug);
+    const items = await this.prisma.shoppingListItem.createManyAndReturn({
+      data: recipe.ingredients.map((ingredient) => ({
+        userId: user.id,
+        name: ingredient,
+        source: `recipe:${recipe.slug}`,
+      })),
+    });
+    return items;
+  }
+
+  async updateShoppingListItem(
+    user: AuthUser,
+    id: string,
+    body: { checked?: boolean; name?: string; quantity?: string },
+  ) {
+    const item = await this.prisma.shoppingListItem.findFirst({
+      where: { id, userId: user.id },
+    });
+    if (!item) throw new NotFoundException('Shopping list item not found');
+    return this.prisma.shoppingListItem.update({
+      where: { id },
+      data: {
+        checked: body.checked,
+        name: body.name?.trim() || undefined,
+        quantity: body.quantity,
+      },
+    });
+  }
+
+  async removeShoppingListItem(user: AuthUser, id: string) {
+    const item = await this.prisma.shoppingListItem.findFirst({
+      where: { id, userId: user.id },
+    });
+    if (!item) throw new NotFoundException('Shopping list item not found');
+    await this.prisma.shoppingListItem.delete({ where: { id } });
+    return { id };
+  }
+
+  async clearCheckedShoppingListItems(user: AuthUser) {
+    const { count } = await this.prisma.shoppingListItem.deleteMany({
+      where: { userId: user.id, checked: true },
+    });
+    return { removed: count };
+  }
+
   async addLog(
     user: AuthUser,
     body: { foodItemId: string; mealType: string; servings?: number },

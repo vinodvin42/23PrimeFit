@@ -331,6 +331,42 @@ class FitnessRepository {
     await _dio.post<Map<String, dynamic>>('/nutrition/fasting/end');
   }
 
+  Future<List<Map<String, dynamic>>> listShoppingList() async {
+    final res = await _dio.get<List<dynamic>>('/nutrition/shopping-list');
+    return (res.data ?? []).whereType<Map<String, dynamic>>().toList();
+  }
+
+  Future<void> addShoppingListItem(String name, {String? quantity}) async {
+    await _dio.post<Map<String, dynamic>>(
+      '/nutrition/shopping-list',
+      data: {
+        'name': name,
+        if (quantity != null && quantity.isNotEmpty) 'quantity': quantity,
+      },
+    );
+  }
+
+  Future<void> toggleShoppingListItem(String id, bool checked) async {
+    await _dio.patch<Map<String, dynamic>>(
+      '/nutrition/shopping-list/$id',
+      data: {'checked': checked},
+    );
+  }
+
+  Future<void> removeShoppingListItem(String id) async {
+    await _dio.delete('/nutrition/shopping-list/$id');
+  }
+
+  Future<void> clearCheckedShoppingListItems() async {
+    await _dio.delete('/nutrition/shopping-list/checked');
+  }
+
+  Future<void> addShoppingListItemsFromRecipe(String slug) async {
+    await _dio.post<Map<String, dynamic>>(
+      '/nutrition/shopping-list/from-recipe/$slug',
+    );
+  }
+
   Future<List<RecipeItem>> listRecipes([String? q]) async {
     final res = await _dio.get<List<dynamic>>(
       '/nutrition/recipes',
@@ -717,6 +753,11 @@ final supplementsProvider =
 final fastingCurrentProvider =
     FutureProvider.autoDispose<Map<String, dynamic>>((ref) {
   return ref.watch(fitnessRepositoryProvider).fastingCurrent();
+});
+
+final shoppingListProvider =
+    FutureProvider.autoDispose<List<Map<String, dynamic>>>((ref) {
+  return ref.watch(fitnessRepositoryProvider).listShoppingList();
 });
 
 final recoveryTodayProvider = FutureProvider.autoDispose<RecoveryToday>((ref) {

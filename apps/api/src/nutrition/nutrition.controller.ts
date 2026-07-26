@@ -126,6 +126,49 @@ export class NutritionController {
     return this.nutrition.fastingHistory(user, days ? Number(days) : 14);
   }
 
+  @Get('shopping-list')
+  listShoppingList(@CurrentUser() user: AuthUser) {
+    return this.nutrition.listShoppingList(user);
+  }
+
+  @Post('shopping-list')
+  addShoppingListItem(
+    @CurrentUser() user: AuthUser,
+    @Body() body: { name: string; quantity?: string },
+  ) {
+    return this.nutrition.addShoppingListItem(user, body);
+  }
+
+  @Post('shopping-list/from-recipe/:slug')
+  addShoppingListItemsFromRecipe(
+    @CurrentUser() user: AuthUser,
+    @Param('slug') slug: string,
+  ) {
+    return this.nutrition.addShoppingListItemsFromRecipe(user, slug);
+  }
+
+  @Patch('shopping-list/:id')
+  updateShoppingListItem(
+    @CurrentUser() user: AuthUser,
+    @Param('id') id: string,
+    @Body() body: { checked?: boolean; name?: string; quantity?: string },
+  ) {
+    return this.nutrition.updateShoppingListItem(user, id, body);
+  }
+
+  @Delete('shopping-list/checked')
+  clearCheckedShoppingListItems(@CurrentUser() user: AuthUser) {
+    return this.nutrition.clearCheckedShoppingListItems(user);
+  }
+
+  @Delete('shopping-list/:id')
+  removeShoppingListItem(
+    @CurrentUser() user: AuthUser,
+    @Param('id') id: string,
+  ) {
+    return this.nutrition.removeShoppingListItem(user, id);
+  }
+
   @Get('recipes')
   recipes(@Query('q') q?: string) {
     return this.nutrition.listRecipes(q);

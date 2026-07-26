@@ -20,7 +20,7 @@ class _FuelScreenState extends ConsumerState<FuelScreen>
   @override
   void initState() {
     super.initState();
-    _tabs = TabController(length: 5, vsync: this);
+    _tabs = TabController(length: 6, vsync: this);
   }
 
   @override
@@ -73,6 +73,7 @@ class _FuelScreenState extends ConsumerState<FuelScreen>
                 Tab(text: 'Recipes'),
                 Tab(text: 'Supplements'),
                 Tab(text: 'Fasting'),
+                Tab(text: 'Shopping'),
               ],
             ),
             Expanded(
@@ -84,6 +85,7 @@ class _FuelScreenState extends ConsumerState<FuelScreen>
                   _RecipesTab(),
                   _SupplementsTab(),
                   _FastingTab(),
+                  _ShoppingListTab(),
                 ],
               ),
             ),
@@ -745,6 +747,41 @@ class _RecipesTabState extends ConsumerState<_RecipesTab> {
                                           ),
                                         ),
                                         const SizedBox(height: 8),
+                                        Align(
+                                          alignment: Alignment.centerLeft,
+                                          child: TextButton.icon(
+                                            onPressed: () async {
+                                              final repo = ref.read(
+                                                fitnessRepositoryProvider,
+                                              );
+                                              await repo
+                                                  .addShoppingListItemsFromRecipe(
+                                                r.slug,
+                                              );
+                                              ref.invalidate(
+                                                shoppingListProvider,
+                                              );
+                                              if (context.mounted) {
+                                                ScaffoldMessenger.of(context)
+                                                    .showSnackBar(
+                                                  SnackBar(
+                                                    content: Text(
+                                                      'Added ${r.ingredients.length} items to your shopping list',
+                                                    ),
+                                                  ),
+                                                );
+                                              }
+                                            },
+                                            icon: const Icon(
+                                              Icons.shopping_cart_outlined,
+                                              color: AppColors.lime,
+                                            ),
+                                            label: const Text(
+                                              'Add ingredients to list',
+                                            ),
+                                          ),
+                                        ),
+                                        const SizedBox(height: 8),
                                         const Text(
                                           'Steps',
                                           style: TextStyle(
@@ -1119,6 +1156,220 @@ class _FastingTabState extends ConsumerState<_FastingTab> {
                       fontSize: 12,
                     ),
                   ),
+                ],
+              );
+            },
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ShoppingListTab extends ConsumerStatefulWidget {
+  const _ShoppingListTab();
+
+  @override
+  ConsumerState<_ShoppingListTab> createState() => _ShoppingListTabState();
+}
+
+class _ShoppingListTabState extends ConsumerState<_ShoppingListTab> {
+  final _name = TextEditingController();
+  final _quantity = TextEditingController();
+  bool _saving = false;
+  String? _busyId;
+
+  @override
+  void dispose() {
+    _name.dispose();
+    _quantity.dispose();
+    super.dispose();
+  }
+
+  Future<void> _add() async {
+    if (_name.text.trim().isEmpty) return;
+    setState(() => _saving = true);
+    try {
+      await ref.read(fitnessRepositoryProvider).addShoppingListItem(
+            _name.text.trim(),
+            quantity: _quantity.text.trim(),
+          );
+      _name.clear();
+      _quantity.clear();
+      ref.invalidate(shoppingListProvider);
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text('$e')));
+      }
+    } finally {
+      if (mounted) setState(() => _saving = false);
+    }
+  }
+
+  Future<void> _toggle(String id, bool checked) async {
+    setState(() => _busyId = id);
+    try {
+      await ref
+          .read(fitnessRepositoryProvider)
+          .toggleShoppingListItem(id, checked);
+      ref.invalidate(shoppingListProvider);
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text('$e')));
+      }
+    } finally {
+      if (mounted) setState(() => _busyId = null);
+    }
+  }
+
+  Future<void> _remove(String id) async {
+    setState(() => _busyId = id);
+    try {
+      await ref.read(fitnessRepositoryProvider).removeShoppingListItem(id);
+      ref.invalidate(shoppingListProvider);
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text('$e')));
+      }
+    } finally {
+      if (mounted) setState(() => _busyId = null);
+    }
+  }
+
+  Future<void> _clearChecked() async {
+    setState(() => _busyId = 'clear');
+    try {
+      await ref.read(fitnessRepositoryProvider).clearCheckedShoppingListItems();
+      ref.invalidate(shoppingListProvider);
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text('$e')));
+      }
+    } finally {
+      if (mounted) setState(() => _busyId = null);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final items = ref.watch(shoppingListProvider);
+    return RefreshIndicator(
+      color: AppColors.lime,
+      onRefresh: () async {
+        ref.invalidate(shoppingListProvider);
+        await ref.read(shoppingListProvider.future);
+      },
+      child: ListView(
+        padding: const EdgeInsets.all(24),
+        children: [
+          GlassCard(
+            child: Row(
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      TextField(
+                        controller: _name,
+                        style: const TextStyle(color: AppColors.white),
+                        decoration:
+                            const InputDecoration(hintText: 'Item'),
+                        onSubmitted: (_) => _add(),
+                      ),
+                      const SizedBox(height: 8),
+                      TextField(
+                        controller: _quantity,
+                        style: const TextStyle(color: AppColors.white),
+                        decoration: const InputDecoration(
+                          hintText: 'Quantity (optional)',
+                        ),
+                        onSubmitted: (_) => _add(),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 8),
+                IconButton.filled(
+                  onPressed: _saving ? null : _add,
+                  style: IconButton.styleFrom(backgroundColor: AppColors.lime),
+                  icon: const Icon(Icons.add, color: AppColors.voidBlack),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 16),
+          items.when(
+            loading: () =>
+                const LinearProgressIndicator(color: AppColors.lime),
+            error: (e, _) =>
+                Text('$e', style: const TextStyle(color: AppColors.danger)),
+            data: (rows) {
+              if (rows.isEmpty) {
+                return const GlassCard(
+                  child: Text(
+                    'Your list is empty. Add items above, or save a '
+                    "recipe's ingredients from the Recipes tab.",
+                    style: TextStyle(color: AppColors.soft),
+                  ),
+                );
+              }
+              final hasChecked = rows.any((r) => r['checked'] == true);
+              return Column(
+                children: [
+                  if (hasChecked)
+                    Align(
+                      alignment: Alignment.centerRight,
+                      child: TextButton(
+                        onPressed:
+                            _busyId == 'clear' ? null : _clearChecked,
+                        child: const Text('Clear checked'),
+                      ),
+                    ),
+                  ...rows.map((item) {
+                    final id = item['id'] as String;
+                    final checked = item['checked'] as bool? ?? false;
+                    final busy = _busyId == id;
+                    final quantity = item['quantity'] as String?;
+                    return Padding(
+                      padding: const EdgeInsets.only(bottom: 6),
+                      child: GlassCard(
+                        padding: EdgeInsets.zero,
+                        child: ListTile(
+                          leading: Checkbox(
+                            value: checked,
+                            activeColor: AppColors.lime,
+                            onChanged:
+                                busy ? null : (_) => _toggle(id, !checked),
+                          ),
+                          title: Text(
+                            '${item['name']}',
+                            style: TextStyle(
+                              color: AppColors.white,
+                              decoration: checked
+                                  ? TextDecoration.lineThrough
+                                  : null,
+                            ),
+                          ),
+                          subtitle: quantity == null || quantity.isEmpty
+                              ? null
+                              : Text(
+                                  quantity,
+                                  style:
+                                      const TextStyle(color: AppColors.muted),
+                                ),
+                          trailing: IconButton(
+                            icon: const Icon(Icons.close,
+                                color: AppColors.muted),
+                            onPressed: busy ? null : () => _remove(id),
+                          ),
+                        ),
+                      ),
+                    );
+                  }),
                 ],
               );
             },

@@ -134,3 +134,57 @@ describe('NutritionService fasting', () => {
     ).rejects.toBeInstanceOf(NotFoundException);
   });
 });
+
+describe('NutritionService shopping list', () => {
+  it('generates one item per recipe ingredient, tagged with the recipe source', async () => {
+    const createManyAndReturn = jest.fn().mockResolvedValue([]);
+    const prisma = {
+      recipe: {
+        findUnique: jest.fn().mockResolvedValue({
+          slug: 'overnight-oats',
+          ingredients: ['oats', 'milk', 'chia seeds'],
+        }),
+      },
+      shoppingListItem: { createManyAndReturn },
+    };
+    const service = makeService(prisma);
+
+    await service.addShoppingListItemsFromRecipe(
+      { id: 'user-1' } as never,
+      'overnight-oats',
+    );
+
+    expect(createManyAndReturn).toHaveBeenCalledWith({
+      data: [
+        { userId: 'user-1', name: 'oats', source: 'recipe:overnight-oats' },
+        { userId: 'user-1', name: 'milk', source: 'recipe:overnight-oats' },
+        {
+          userId: 'user-1',
+          name: 'chia seeds',
+          source: 'recipe:overnight-oats',
+        },
+      ],
+    });
+  });
+
+  it('rejects adding an item with a blank name', async () => {
+    const service = makeService({});
+
+    await expect(
+      service.addShoppingListItem({ id: 'user-1' } as never, { name: ' ' }),
+    ).rejects.toBeInstanceOf(BadRequestException);
+  });
+
+  it('rejects updating an item that does not belong to the user', async () => {
+    const prisma = {
+      shoppingListItem: { findFirst: jest.fn().mockResolvedValue(null) },
+    };
+    const service = makeService(prisma);
+
+    await expect(
+      service.updateShoppingListItem({ id: 'user-1' } as never, 'item-1', {
+        checked: true,
+      }),
+    ).rejects.toBeInstanceOf(NotFoundException);
+  });
+});

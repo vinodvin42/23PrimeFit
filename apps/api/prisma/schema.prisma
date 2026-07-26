@@ -149,6 +149,7 @@ model User {
   supplements           Supplement[]
   supplementLogs        SupplementLog[]
   fastingSessions       FastingSession[]
+  shoppingListItems     ShoppingListItem[]
 }
 
 model Profile {
@@ -1373,4 +1374,19 @@ model FastingSession {
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId, startedAt])
+}
+
+/// Nutrition: personal grocery checklist, addable manually or generated from a recipe.
+model ShoppingListItem {
+  id        String   @id @default(cuid())
+  userId    String
+  name      String
+  quantity  String?
+  checked   Boolean  @default(false)
+  source    String?
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, checked])
 }
