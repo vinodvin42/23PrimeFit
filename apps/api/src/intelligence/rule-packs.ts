@@ -27,11 +27,8 @@ function sum(nums: number[]) {
 
 /** Acute:chronic workload ratio from training load + session RPE×min + cricket overs. */
 export function computeLoads(f: DailyFeatures) {
-  const acuteWearable = sum(
-    f.recovery7.map((r) => r.trainingLoad ?? 0),
-  );
-  const chronicWearable =
-    avg(f.recovery28.map((r) => r.trainingLoad ?? 0)) * 7;
+  const acuteWearable = sum(f.recovery7.map((r) => r.trainingLoad ?? 0));
+  const chronicWearable = avg(f.recovery28.map((r) => r.trainingLoad ?? 0)) * 7;
 
   const acuteSession = sum(
     f.sessions7.map((s) => (s.rpe ?? 5) * (s.durationMin ?? 45) * 0.1),
@@ -40,8 +37,7 @@ export function computeLoads(f: DailyFeatures) {
   const chronicSession = Math.max(acuteSession * 0.55, 1);
 
   const acuteBowl = sum(f.cricket7.map((c) => (c.overs ?? 0) * 10));
-  const chronicBowl =
-    avg(f.cricket28.map((c) => (c.overs ?? 0) * 10)) * 7;
+  const chronicBowl = avg(f.cricket28.map((c) => (c.overs ?? 0) * 10)) * 7;
 
   const acute = acuteWearable + acuteSession + acuteBowl;
   const chronic = Math.max(1, chronicWearable + chronicSession + chronicBowl);
@@ -63,10 +59,10 @@ export function runInjuryRules(f: DailyFeatures): RuleSignal[] {
     .filter((v): v is number => v != null);
   const hrvBaseline = avg(hrvVals);
   const hrvNow = avg(hrv7);
-  const hrvDrop =
-    hrvBaseline > 0 ? (hrvBaseline - hrvNow) / hrvBaseline : 0;
-  const stressHigh = f.recovery7.filter((r) => (r.stressScore ?? 0) >= 70)
-    .length;
+  const hrvDrop = hrvBaseline > 0 ? (hrvBaseline - hrvNow) / hrvBaseline : 0;
+  const stressHigh = f.recovery7.filter(
+    (r) => (r.stressScore ?? 0) >= 70,
+  ).length;
 
   let score = Math.min(100, Math.max(0, (acwr - 0.8) * 80));
   const drivers: string[] = [];
@@ -277,7 +273,10 @@ export function runPredictiveRules(f: DailyFeatures): {
   const yesterdayLoad = f.recovery7.at(-1)?.trainingLoad ?? acwr * 40;
   const readiness24 = Math.max(
     20,
-    Math.min(95, 82 - sleepDebt * 8 - Math.max(0, acwr - 1) * 25 - yesterdayLoad * 0.05),
+    Math.min(
+      95,
+      82 - sleepDebt * 8 - Math.max(0, acwr - 1) * 25 - yesterdayLoad * 0.05,
+    ),
   );
 
   const overreach72 = Math.max(
@@ -304,7 +303,12 @@ export function runPredictiveRules(f: DailyFeatures): {
       metric: 'READINESS',
       predictedValue: Number(readiness24.toFixed(1)),
       confidence: sleepAvg > 0 ? 'HIGH' : 'MED',
-      drivers: { sleepAvg, sleepDebt, acwr, plannedSessions3d: f.plannedSessions3d },
+      drivers: {
+        sleepAvg,
+        sleepDebt,
+        acwr,
+        plannedSessions3d: f.plannedSessions3d,
+      },
     },
     {
       horizonHours: 72,
@@ -356,7 +360,10 @@ export function runPredictiveRules(f: DailyFeatures): {
     });
   }
 
-  if (f.goals.includes('CRICKET_PERFORMANCE') && f.cricket7.some((c) => c.kind === 'MATCH')) {
+  if (
+    f.goals.includes('CRICKET_PERFORMANCE') &&
+    f.cricket7.some((c) => c.kind === 'MATCH')
+  ) {
     signals.push({
       type: 'PRED_MATCH_FUEL',
       score: 50,

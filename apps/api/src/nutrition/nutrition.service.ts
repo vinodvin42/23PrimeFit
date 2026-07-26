@@ -23,6 +23,8 @@ type OffProduct = {
 @Injectable()
 export class NutritionService {
   private readonly logger = new Logger(NutritionService.name);
+  private readonly fastingDisclaimer =
+    'Fasting windows are a personal wellness log, not medical advice — check with a healthcare professional before starting any fasting protocol, especially if pregnant, diabetic, or on medication.';
 
   constructor(
     private readonly prisma: PrismaService,
@@ -79,7 +81,7 @@ export class NutritionService {
       this.logger.warn(`Open Food Facts search failed: ${String(err)}`);
     }
 
-    let nxItems: Awaited<ReturnType<NutritionService['upsertRemoteFood']>>[] =
+    const nxItems: Awaited<ReturnType<NutritionService['upsertRemoteFood']>>[] =
       [];
     let nxSource = '';
     try {
@@ -318,6 +320,256 @@ export class NutritionService {
       mealPlan: assignment?.mealPlan ?? null,
       source: 'mock+openfoodfacts',
     };
+  }
+
+  private hydrationTargetMl(user: AuthUser) {
+    const weightKg = user.profile?.weightKg;
+    if (weightKg && weightKg > 0) {
+      return Math.round(weightKg * 33);
+    }
+    return 2500;
+  }
+
+  async hydrationToday(user: AuthUser) {
+    const dateKey = new Date().toISOString().slice(0, 10);
+    const logs = await this.prisma.hydrationLog.findMany({
+      where: { userId: user.id, dateKey },
+      orderBy: { loggedAt: 'asc' },
+    });
+    const totalMl = logs.reduce((sum, log) => sum + log.amountMl, 0);
+    return {
+      dateKey,
+      totalMl,
+      targetMl: this.hydrationTargetMl(user),
+      logs,
+    };
+  }
+
+  async logHydration(user: AuthUser, amountMl: number) {
+    if (!Number.isFinite(amountMl) || amountMl <= 0) {
+      throw new BadRequestException('amountMl must be a positive number');
+    }
+    const dateKey = new Date().toISOString().slice(0, 10);
+    return this.prisma.hydrationLog.create({
+      data: { userId: user.id, amountMl: Math.round(amountMl), dateKey },
+    });
+  }
+
+  async hydrationHistory(user: AuthUser, days = 7) {
+    const from = new Date(Date.now() - days * 86400000)
+      .toISOString()
+      .slice(0, 10);
+    const logs = await this.prisma.hydrationLog.findMany({
+      where: { userId: user.id, dateKey: { gte: from } },
+      orderBy: { dateKey: 'asc' },
+    });
+    const byDate = new Map<string, number>();
+    for (const log of logs) {
+      byDate.set(log.dateKey, (byDate.get(log.dateKey) ?? 0) + log.amountMl);
+    }
+    return {
+      targetMl: this.hydrationTargetMl(user),
+      days: Array.from(byDate.entries()).map(([dateKey, totalMl]) => ({
+        dateKey,
+        totalMl,
+      })),
+    };
+  }
+
+  async listSupplements(user: AuthUser) {
+    const dateKey = new Date().toISOString().slice(0, 10);
+    const supplements = await this.prisma.supplement.findMany({
+      where: { userId: user.id, active: true },
+      orderBy: { createdAt: 'asc' },
+      include: { logs: { where: { dateKey } } },
+    });
+    return supplements.map((s) => {
+      const { logs, ...rest } = s;
+      return { ...rest, takenToday: logs.length > 0 };
+    });
+  }
+
+  async createSupplement(
+    user: AuthUser,
+    body: { name: string; dosage?: string; schedule?: string },
+  ) {
+    if (!body.name?.trim()) {
+      throw new BadRequestException('name is required');
+    }
+    return this.prisma.supplement.create({
+      data: {
+        userId: user.id,
+        name: body.name.trim(),
+        dosage: body.dosage,
+        schedule: body.schedule,
+      },
+    });
+  }
+
+  async deactivateSupplement(user: AuthUser, id: string) {
+    const supplement = await this.prisma.supplement.findFirst({
+      where: { id, userId: user.id },
+    });
+    if (!supplement) throw new NotFoundException('Supplement not found');
+    return this.prisma.supplement.update({
+      where: { id },
+      data: { active: false },
+    });
+  }
+
+  async logSupplement(user: AuthUser, id: string) {
+    const supplement = await this.prisma.supplement.findFirst({
+      where: { id, userId: user.id },
+    });
+    if (!supplement) throw new NotFoundException('Supplement not found');
+    const dateKey = new Date().toISOString().slice(0, 10);
+    return this.prisma.supplementLog.upsert({
+      where: { supplementId_dateKey: { supplementId: id, dateKey } },
+      update: {},
+      create: { userId: user.id, supplementId: id, dateKey },
+    });
+  }
+
+  async unlogSupplement(user: AuthUser, id: string) {
+    const supplement = await this.prisma.supplement.findFirst({
+      where: { id, userId: user.id },
+    });
+    if (!supplement) throw new NotFoundException('Supplement not found');
+    const dateKey = new Date().toISOString().slice(0, 10);
+    await this.prisma.supplementLog.deleteMany({
+      where: { supplementId: id, dateKey },
+    });
+    return { supplementId: id, dateKey, takenToday: false };
+  }
+
+  async fastingCurrent(user: AuthUser) {
+    const session = await this.prisma.fastingSession.findFirst({
+      where: { userId: user.id, endedAt: null },
+      orderBy: { startedAt: 'desc' },
+    });
+    return {
+      session,
+      elapsedHours: session
+        ? (Date.now() - session.startedAt.getTime()) / 3600000
+        : 0,
+      disclaimer: this.fastingDisclaimer,
+    };
+  }
+
+  async startFasting(user: AuthUser, targetHours?: number) {
+    const active = await this.prisma.fastingSession.findFirst({
+      where: { userId: user.id, endedAt: null },
+    });
+    if (active) {
+      throw new BadRequestException('A fasting session is already active');
+    }
+    return this.prisma.fastingSession.create({
+      data: {
+        userId: user.id,
+        targetHours: targetHours && targetHours > 0 ? targetHours : 16,
+      },
+    });
+  }
+
+  async endFasting(user: AuthUser) {
+    const active = await this.prisma.fastingSession.findFirst({
+      where: { userId: user.id, endedAt: null },
+    });
+    if (!active) {
+      throw new NotFoundException('No active fasting session');
+    }
+    return this.prisma.fastingSession.update({
+      where: { id: active.id },
+      data: { endedAt: new Date() },
+    });
+  }
+
+  async fastingHistory(user: AuthUser, days = 14) {
+    const from = new Date(Date.now() - days * 86400000);
+    const sessions = await this.prisma.fastingSession.findMany({
+      where: { userId: user.id, startedAt: { gte: from } },
+      orderBy: { startedAt: 'desc' },
+    });
+    return {
+      disclaimer: this.fastingDisclaimer,
+      sessions: sessions.map((s) => ({
+        ...s,
+        durationHours: s.endedAt
+          ? (s.endedAt.getTime() - s.startedAt.getTime()) / 3600000
+          : null,
+      })),
+    };
+  }
+
+  async listShoppingList(user: AuthUser) {
+    return this.prisma.shoppingListItem.findMany({
+      where: { userId: user.id },
+      orderBy: [{ checked: 'asc' }, { createdAt: 'asc' }],
+    });
+  }
+
+  async addShoppingListItem(
+    user: AuthUser,
+    body: { name: string; quantity?: string },
+  ) {
+    if (!body.name?.trim()) {
+      throw new BadRequestException('name is required');
+    }
+    return this.prisma.shoppingListItem.create({
+      data: {
+        userId: user.id,
+        name: body.name.trim(),
+        quantity: body.quantity,
+        source: 'manual',
+      },
+    });
+  }
+
+  async addShoppingListItemsFromRecipe(user: AuthUser, slug: string) {
+    const recipe = await this.getRecipe(slug);
+    const items = await this.prisma.shoppingListItem.createManyAndReturn({
+      data: recipe.ingredients.map((ingredient) => ({
+        userId: user.id,
+        name: ingredient,
+        source: `recipe:${recipe.slug}`,
+      })),
+    });
+    return items;
+  }
+
+  async updateShoppingListItem(
+    user: AuthUser,
+    id: string,
+    body: { checked?: boolean; name?: string; quantity?: string },
+  ) {
+    const item = await this.prisma.shoppingListItem.findFirst({
+      where: { id, userId: user.id },
+    });
+    if (!item) throw new NotFoundException('Shopping list item not found');
+    return this.prisma.shoppingListItem.update({
+      where: { id },
+      data: {
+        checked: body.checked,
+        name: body.name?.trim() || undefined,
+        quantity: body.quantity,
+      },
+    });
+  }
+
+  async removeShoppingListItem(user: AuthUser, id: string) {
+    const item = await this.prisma.shoppingListItem.findFirst({
+      where: { id, userId: user.id },
+    });
+    if (!item) throw new NotFoundException('Shopping list item not found');
+    await this.prisma.shoppingListItem.delete({ where: { id } });
+    return { id };
+  }
+
+  async clearCheckedShoppingListItems(user: AuthUser) {
+    const { count } = await this.prisma.shoppingListItem.deleteMany({
+      where: { userId: user.id, checked: true },
+    });
+    return { removed: count };
   }
 
   async addLog(

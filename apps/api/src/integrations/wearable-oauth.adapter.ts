@@ -137,8 +137,8 @@ export class WearableOauthAdapter {
           grant_type: 'authorization_code',
           redirect_uri:
             provider === 'garmin'
-              ? this.config.get<string>('GARMIN_REDIRECT_URI')?.trim() ?? ''
-              : this.config.get<string>('WHOOP_REDIRECT_URI')?.trim() ?? '',
+              ? (this.config.get<string>('GARMIN_REDIRECT_URI')?.trim() ?? '')
+              : (this.config.get<string>('WHOOP_REDIRECT_URI')?.trim() ?? ''),
         }),
       });
       const token = (await response.json()) as {
@@ -147,7 +147,9 @@ export class WearableOauthAdapter {
         error?: string;
       };
       if (!response.ok || !token.access_token) {
-        throw new Error(token.error ?? `token exchange failed (${response.status})`);
+        throw new Error(
+          token.error ?? `token exchange failed (${response.status})`,
+        );
       }
       return {
         provider,
@@ -190,7 +192,9 @@ export class WearableOauthAdapter {
       return null;
     }
     try {
-      const parsed = JSON.parse(Buffer.from(payload, 'base64url').toString()) as {
+      const parsed = JSON.parse(
+        Buffer.from(payload, 'base64url').toString(),
+      ) as {
         provider?: string;
         userId?: string;
         ts?: number;
@@ -210,17 +214,23 @@ export class WearableOauthAdapter {
   }
 
   private sign(payload: string) {
-    return createHmac('sha256', this.stateSecret()).update(payload).digest('hex');
+    return createHmac('sha256', this.stateSecret())
+      .update(payload)
+      .digest('hex');
   }
 
   private matchesSignature(payload: string, signature: string) {
     const expected = Buffer.from(this.sign(payload));
     const received = Buffer.from(signature);
-    return expected.length === received.length && timingSafeEqual(expected, received);
+    return (
+      expected.length === received.length && timingSafeEqual(expected, received)
+    );
   }
 
   private stateSecret() {
-    const secret = this.config.get<string>('WEARABLE_OAUTH_STATE_SECRET')?.trim();
+    const secret = this.config
+      .get<string>('WEARABLE_OAUTH_STATE_SECRET')
+      ?.trim();
     if (secret) return secret;
     if (this.demoEnabled) return 'local-wearable-demo-state-secret';
     throw new ServiceUnavailableException(

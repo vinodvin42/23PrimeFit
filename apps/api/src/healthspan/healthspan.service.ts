@@ -22,7 +22,10 @@ export class HealthspanService {
     const snapshot = await this.createOrRefresh(user.id, dateKey, baseline);
     return {
       baseline,
-      snapshot: { ...snapshot, pillars: JSON.parse(snapshot.pillarsJson) },
+      snapshot: {
+        ...snapshot,
+        pillars: JSON.parse(snapshot.pillarsJson) as Record<string, unknown>,
+      },
       disclaimer:
         'Healthspan is a wellness estimate, not a medical assessment or biological-age diagnosis.',
     };
@@ -42,7 +45,7 @@ export class HealthspanService {
       to: toKey,
       snapshots: snapshots.map((item) => ({
         ...item,
-        pillars: JSON.parse(item.pillarsJson),
+        pillars: JSON.parse(item.pillarsJson) as Record<string, unknown>,
       })),
     };
   }

@@ -74,7 +74,11 @@ export class BloodOcrAdapter {
       markers: input.markers,
     });
     if (modeHint === 'vision' && result.mode === 'ocr_stub') {
-      return { ...result, mode: 'vision' as const, summary: 'Markers extracted via OpenAI vision OCR.' };
+      return {
+        ...result,
+        mode: 'vision' as const,
+        summary: 'Markers extracted via OpenAI vision OCR.',
+      };
     }
     return result;
   }
@@ -87,7 +91,10 @@ export class BloodOcrAdapter {
       ['ldl', /ldl[^0-9]{0,12}(\d{2,3}(?:\.\d+)?)/i],
       ['hdl', /hdl[^0-9]{0,12}(\d{2,3}(?:\.\d+)?)/i],
       ['hba1c', /hba1c[^0-9]{0,12}(\d(?:\.\d+)?)/i],
-      ['fastingGlucose', /(?:fasting\s*)?glucose[^0-9]{0,12}(\d{2,3}(?:\.\d+)?)/i],
+      [
+        'fastingGlucose',
+        /(?:fasting\s*)?glucose[^0-9]{0,12}(\d{2,3}(?:\.\d+)?)/i,
+      ],
       ['triglycerides', /triglyc[^0-9]{0,12}(\d{2,3}(?:\.\d+)?)/i],
     ];
     for (const [key, re] of patterns) {

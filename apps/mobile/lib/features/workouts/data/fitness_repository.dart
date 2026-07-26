@@ -267,6 +267,274 @@ class FitnessRepository {
     await _dio.delete('/nutrition/logs/$id');
   }
 
+  Future<HydrationToday> hydrationToday() async {
+    final res = await _dio.get<Map<String, dynamic>>('/nutrition/hydration/today');
+    return HydrationToday.fromJson(res.data!);
+  }
+
+  Future<void> logHydration(int amountMl) async {
+    await _dio.post<Map<String, dynamic>>(
+      '/nutrition/hydration',
+      data: {'amountMl': amountMl},
+    );
+  }
+
+  Future<List<Map<String, dynamic>>> listSupplements() async {
+    final res = await _dio.get<List<dynamic>>('/nutrition/supplements');
+    return (res.data ?? []).whereType<Map<String, dynamic>>().toList();
+  }
+
+  Future<Map<String, dynamic>> createSupplement({
+    required String name,
+    String? dosage,
+    String? schedule,
+  }) async {
+    final res = await _dio.post<Map<String, dynamic>>(
+      '/nutrition/supplements',
+      data: {
+        'name': name,
+        if (dosage != null && dosage.isNotEmpty) 'dosage': dosage,
+        if (schedule != null && schedule.isNotEmpty) 'schedule': schedule,
+      },
+    );
+    return res.data!;
+  }
+
+  Future<void> deactivateSupplement(String id) async {
+    await _dio.patch<Map<String, dynamic>>(
+      '/nutrition/supplements/$id/deactivate',
+    );
+  }
+
+  Future<void> logSupplementTaken(String id) async {
+    await _dio.post<Map<String, dynamic>>('/nutrition/supplements/$id/log');
+  }
+
+  Future<void> unlogSupplementTaken(String id) async {
+    await _dio.delete('/nutrition/supplements/$id/log');
+  }
+
+  Future<Map<String, dynamic>> fastingCurrent() async {
+    final res =
+        await _dio.get<Map<String, dynamic>>('/nutrition/fasting/current');
+    return res.data!;
+  }
+
+  Future<void> startFasting(double targetHours) async {
+    await _dio.post<Map<String, dynamic>>(
+      '/nutrition/fasting/start',
+      data: {'targetHours': targetHours},
+    );
+  }
+
+  Future<void> endFasting() async {
+    await _dio.post<Map<String, dynamic>>('/nutrition/fasting/end');
+  }
+
+  Future<List<Map<String, dynamic>>> listShoppingList() async {
+    final res = await _dio.get<List<dynamic>>('/nutrition/shopping-list');
+    return (res.data ?? []).whereType<Map<String, dynamic>>().toList();
+  }
+
+  Future<void> addShoppingListItem(String name, {String? quantity}) async {
+    await _dio.post<Map<String, dynamic>>(
+      '/nutrition/shopping-list',
+      data: {
+        'name': name,
+        if (quantity != null && quantity.isNotEmpty) 'quantity': quantity,
+      },
+    );
+  }
+
+  Future<void> toggleShoppingListItem(String id, bool checked) async {
+    await _dio.patch<Map<String, dynamic>>(
+      '/nutrition/shopping-list/$id',
+      data: {'checked': checked},
+    );
+  }
+
+  Future<void> removeShoppingListItem(String id) async {
+    await _dio.delete('/nutrition/shopping-list/$id');
+  }
+
+  Future<void> clearCheckedShoppingListItems() async {
+    await _dio.delete('/nutrition/shopping-list/checked');
+  }
+
+  Future<void> addShoppingListItemsFromRecipe(String slug) async {
+    await _dio.post<Map<String, dynamic>>(
+      '/nutrition/shopping-list/from-recipe/$slug',
+    );
+  }
+
+  Future<Map<String, dynamic>> listMedications() async {
+    final res = await _dio.get<Map<String, dynamic>>('/medications');
+    return res.data!;
+  }
+
+  Future<void> createMedication({
+    required String name,
+    String? dosage,
+    String? schedule,
+  }) async {
+    await _dio.post<Map<String, dynamic>>(
+      '/medications',
+      data: {
+        'name': name,
+        if (dosage != null && dosage.isNotEmpty) 'dosage': dosage,
+        if (schedule != null && schedule.isNotEmpty) 'schedule': schedule,
+      },
+    );
+  }
+
+  Future<void> deactivateMedication(String id) async {
+    await _dio.patch<Map<String, dynamic>>('/medications/$id/deactivate');
+  }
+
+  Future<void> logMedicationTaken(String id) async {
+    await _dio.post<Map<String, dynamic>>('/medications/$id/log');
+  }
+
+  Future<void> unlogMedicationTaken(String id) async {
+    await _dio.delete('/medications/$id/log');
+  }
+
+  Future<Map<String, dynamic>> listBloodPressure() async {
+    final res = await _dio.get<Map<String, dynamic>>('/vitals/blood-pressure');
+    return res.data!;
+  }
+
+  Future<void> logBloodPressure({
+    required int systolic,
+    required int diastolic,
+    int? pulseBpm,
+  }) async {
+    await _dio.post<Map<String, dynamic>>(
+      '/vitals/blood-pressure',
+      data: {
+        'systolic': systolic,
+        'diastolic': diastolic,
+        if (pulseBpm != null) 'pulseBpm': pulseBpm,
+      },
+    );
+  }
+
+  Future<void> removeBloodPressure(String id) async {
+    await _dio.delete('/vitals/blood-pressure/$id');
+  }
+
+  Future<Map<String, dynamic>> listBloodSugar() async {
+    final res = await _dio.get<Map<String, dynamic>>('/vitals/blood-sugar');
+    return res.data!;
+  }
+
+  Future<void> logBloodSugar({
+    required double valueMgDl,
+    String? context,
+  }) async {
+    await _dio.post<Map<String, dynamic>>(
+      '/vitals/blood-sugar',
+      data: {
+        'valueMgDl': valueMgDl,
+        if (context != null && context.isNotEmpty) 'context': context,
+      },
+    );
+  }
+
+  Future<void> removeBloodSugar(String id) async {
+    await _dio.delete('/vitals/blood-sugar/$id');
+  }
+
+  Future<Map<String, dynamic>> listAllergies() async {
+    final res = await _dio.get<Map<String, dynamic>>('/vitals/allergies');
+    return res.data!;
+  }
+
+  Future<void> addAllergy({
+    required String allergen,
+    String? severity,
+    String? reaction,
+  }) async {
+    await _dio.post<Map<String, dynamic>>(
+      '/vitals/allergies',
+      data: {
+        'allergen': allergen,
+        if (severity != null) 'severity': severity,
+        if (reaction != null && reaction.isNotEmpty) 'reaction': reaction,
+      },
+    );
+  }
+
+  Future<void> removeAllergy(String id) async {
+    await _dio.delete('/vitals/allergies/$id');
+  }
+
+  Future<Map<String, dynamic>> listVaccinations() async {
+    final res = await _dio.get<Map<String, dynamic>>('/vitals/vaccinations');
+    return res.data!;
+  }
+
+  Future<void> addVaccination({
+    required String name,
+    required String administeredAt,
+    String? nextDueAt,
+    String? notes,
+  }) async {
+    await _dio.post<Map<String, dynamic>>(
+      '/vitals/vaccinations',
+      data: {
+        'name': name,
+        'administeredAt': administeredAt,
+        if (nextDueAt != null && nextDueAt.isNotEmpty)
+          'nextDueAt': nextDueAt,
+        if (notes != null && notes.isNotEmpty) 'notes': notes,
+      },
+    );
+  }
+
+  Future<void> removeVaccination(String id) async {
+    await _dio.delete('/vitals/vaccinations/$id');
+  }
+
+  Future<Map<String, dynamic>> listBodyMeasurements() async {
+    final res = await _dio.get<Map<String, dynamic>>('/vitals/measurements');
+    return res.data!;
+  }
+
+  Future<void> addBodyMeasurement({
+    double? waistCm,
+    double? hipCm,
+    double? chestCm,
+    double? armCm,
+    double? thighCm,
+    double? bodyFatPct,
+    double? muscleMassKg,
+    String? notes,
+  }) async {
+    await _dio.post<Map<String, dynamic>>(
+      '/vitals/measurements',
+      data: {
+        if (waistCm != null) 'waistCm': waistCm,
+        if (hipCm != null) 'hipCm': hipCm,
+        if (chestCm != null) 'chestCm': chestCm,
+        if (armCm != null) 'armCm': armCm,
+        if (thighCm != null) 'thighCm': thighCm,
+        if (bodyFatPct != null) 'bodyFatPct': bodyFatPct,
+        if (muscleMassKg != null) 'muscleMassKg': muscleMassKg,
+        if (notes != null && notes.isNotEmpty) 'notes': notes,
+      },
+    );
+  }
+
+  Future<void> removeBodyMeasurement(String id) async {
+    await _dio.delete('/vitals/measurements/$id');
+  }
+
+  Future<Map<String, dynamic>> healthTimeline() async {
+    final res = await _dio.get<Map<String, dynamic>>('/vitals/timeline');
+    return res.data!;
+  }
+
   Future<List<RecipeItem>> listRecipes([String? q]) async {
     final res = await _dio.get<List<dynamic>>(
       '/nutrition/recipes',
@@ -397,6 +665,122 @@ class FitnessRepository {
   Future<List<Map<String, dynamic>>> listNotifications() async {
     final res = await _dio.get<List<dynamic>>('/notifications');
     return (res.data ?? []).whereType<Map<String, dynamic>>().toList();
+  }
+
+  Future<List<Map<String, dynamic>>> listChallenges() async {
+    final res = await _dio.get<List<dynamic>>('/community/challenges');
+    return (res.data ?? []).whereType<Map<String, dynamic>>().toList();
+  }
+
+  Future<Map<String, dynamic>> joinChallenge(String id) async {
+    final res = await _dio.post<Map<String, dynamic>>(
+      '/community/challenges/$id/join',
+    );
+    return res.data!;
+  }
+
+  Future<Map<String, dynamic>> logChallengeProgress(
+    String id,
+    int delta,
+  ) async {
+    final res = await _dio.post<Map<String, dynamic>>(
+      '/community/challenges/$id/progress',
+      data: {'delta': delta},
+    );
+    return res.data!;
+  }
+
+  Future<Map<String, dynamic>> challengeLeaderboard(String id) async {
+    final res = await _dio.get<Map<String, dynamic>>(
+      '/community/challenges/$id/leaderboard',
+    );
+    return res.data!;
+  }
+
+  Future<List<Map<String, dynamic>>> listAchievements() async {
+    final res = await _dio.get<List<dynamic>>('/community/achievements');
+    return (res.data ?? []).whereType<Map<String, dynamic>>().toList();
+  }
+
+  Future<Map<String, dynamic>> communityStreak() async {
+    final res = await _dio.get<Map<String, dynamic>>('/community/streak');
+    return res.data!;
+  }
+
+  Future<List<Map<String, dynamic>>> listTenantMembers() async {
+    final res = await _dio.get<List<dynamic>>('/community/members');
+    return (res.data ?? []).whereType<Map<String, dynamic>>().toList();
+  }
+
+  Future<Map<String, dynamic>> listFriends() async {
+    final res = await _dio.get<Map<String, dynamic>>('/community/friends');
+    return res.data!;
+  }
+
+  Future<void> sendFriendRequest(String toUserId) async {
+    await _dio.post<Map<String, dynamic>>(
+      '/community/friends/requests',
+      data: {'toUserId': toUserId},
+    );
+  }
+
+  Future<void> acceptFriendRequest(String requestId) async {
+    await _dio.post<Map<String, dynamic>>(
+      '/community/friends/requests/$requestId/accept',
+    );
+  }
+
+  Future<void> declineFriendRequest(String requestId) async {
+    await _dio.post<Map<String, dynamic>>(
+      '/community/friends/requests/$requestId/decline',
+    );
+  }
+
+  Future<void> removeFriend(String userId) async {
+    await _dio.delete('/community/friends/$userId');
+  }
+
+  Future<List<Map<String, dynamic>>> listEvents() async {
+    final res = await _dio.get<List<dynamic>>('/community/events');
+    return (res.data ?? []).whereType<Map<String, dynamic>>().toList();
+  }
+
+  Future<void> rsvpEvent(String eventId, String status) async {
+    await _dio.post<Map<String, dynamic>>(
+      '/community/events/$eventId/rsvp',
+      data: {'status': status},
+    );
+  }
+
+  Future<List<Map<String, dynamic>>> listStories() async {
+    final res = await _dio.get<List<dynamic>>('/community/stories');
+    return (res.data ?? []).whereType<Map<String, dynamic>>().toList();
+  }
+
+  Future<void> createStory({
+    String? caption,
+    String? beforePhotoId,
+    String? afterPhotoId,
+  }) async {
+    await _dio.post<Map<String, dynamic>>(
+      '/community/stories',
+      data: {
+        if (caption != null) 'caption': caption,
+        if (beforePhotoId != null) 'beforePhotoId': beforePhotoId,
+        if (afterPhotoId != null) 'afterPhotoId': afterPhotoId,
+      },
+    );
+  }
+
+  Future<void> removeStory(String id) async {
+    await _dio.delete('/community/stories/$id');
+  }
+
+  Future<Map<String, dynamic>> cheerStory(String id) async {
+    final res = await _dio.post<Map<String, dynamic>>(
+      '/community/stories/$id/cheer',
+    );
+    return res.data!;
   }
 
   Future<Map<String, dynamic>> aiDashboard() async {
@@ -598,6 +982,81 @@ final myWorkoutsProvider = FutureProvider.autoDispose<MyWorkouts>((ref) {
 final nutritionTodayProvider =
     FutureProvider.autoDispose<NutritionToday>((ref) {
   return ref.watch(fitnessRepositoryProvider).nutritionToday();
+});
+
+final hydrationTodayProvider =
+    FutureProvider.autoDispose<HydrationToday>((ref) {
+  return ref.watch(fitnessRepositoryProvider).hydrationToday();
+});
+
+final supplementsProvider =
+    FutureProvider.autoDispose<List<Map<String, dynamic>>>((ref) {
+  return ref.watch(fitnessRepositoryProvider).listSupplements();
+});
+
+final fastingCurrentProvider =
+    FutureProvider.autoDispose<Map<String, dynamic>>((ref) {
+  return ref.watch(fitnessRepositoryProvider).fastingCurrent();
+});
+
+final shoppingListProvider =
+    FutureProvider.autoDispose<List<Map<String, dynamic>>>((ref) {
+  return ref.watch(fitnessRepositoryProvider).listShoppingList();
+});
+
+final medicationsProvider =
+    FutureProvider.autoDispose<Map<String, dynamic>>((ref) {
+  return ref.watch(fitnessRepositoryProvider).listMedications();
+});
+
+final tenantMembersProvider =
+    FutureProvider.autoDispose<List<Map<String, dynamic>>>((ref) {
+  return ref.watch(fitnessRepositoryProvider).listTenantMembers();
+});
+
+final friendsProvider =
+    FutureProvider.autoDispose<Map<String, dynamic>>((ref) {
+  return ref.watch(fitnessRepositoryProvider).listFriends();
+});
+
+final communityEventsProvider =
+    FutureProvider.autoDispose<List<Map<String, dynamic>>>((ref) {
+  return ref.watch(fitnessRepositoryProvider).listEvents();
+});
+
+final transformationStoriesProvider =
+    FutureProvider.autoDispose<List<Map<String, dynamic>>>((ref) {
+  return ref.watch(fitnessRepositoryProvider).listStories();
+});
+
+final bloodPressureProvider =
+    FutureProvider.autoDispose<Map<String, dynamic>>((ref) {
+  return ref.watch(fitnessRepositoryProvider).listBloodPressure();
+});
+
+final bloodSugarProvider =
+    FutureProvider.autoDispose<Map<String, dynamic>>((ref) {
+  return ref.watch(fitnessRepositoryProvider).listBloodSugar();
+});
+
+final allergiesProvider =
+    FutureProvider.autoDispose<Map<String, dynamic>>((ref) {
+  return ref.watch(fitnessRepositoryProvider).listAllergies();
+});
+
+final vaccinationsProvider =
+    FutureProvider.autoDispose<Map<String, dynamic>>((ref) {
+  return ref.watch(fitnessRepositoryProvider).listVaccinations();
+});
+
+final bodyMeasurementsProvider =
+    FutureProvider.autoDispose<Map<String, dynamic>>((ref) {
+  return ref.watch(fitnessRepositoryProvider).listBodyMeasurements();
+});
+
+final healthTimelineProvider =
+    FutureProvider.autoDispose<Map<String, dynamic>>((ref) {
+  return ref.watch(fitnessRepositoryProvider).healthTimeline();
 });
 
 final recoveryTodayProvider = FutureProvider.autoDispose<RecoveryToday>((ref) {

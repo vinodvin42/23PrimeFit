@@ -93,10 +93,7 @@ export class TenantsService {
             subscriptions: {
               where: {
                 status: {
-                  in: [
-                    SubscriptionStatus.TRIALING,
-                    SubscriptionStatus.ACTIVE,
-                  ],
+                  in: [SubscriptionStatus.TRIALING, SubscriptionStatus.ACTIVE],
                 },
               },
               include: { plan: true },
@@ -114,10 +111,7 @@ export class TenantsService {
         where: {
           userId: user.id,
           status: {
-            in: [
-              ClientMembershipStatus.ACTIVE,
-              ClientMembershipStatus.INVITED,
-            ],
+            in: [ClientMembershipStatus.ACTIVE, ClientMembershipStatus.INVITED],
           },
         },
         include: { tenant: true },
@@ -158,10 +152,7 @@ export class TenantsService {
         where: {
           userId: user.id,
           status: {
-            in: [
-              ClientMembershipStatus.ACTIVE,
-              ClientMembershipStatus.INVITED,
-            ],
+            in: [ClientMembershipStatus.ACTIVE, ClientMembershipStatus.INVITED],
           },
         },
         include: { tenant: true },
@@ -250,7 +241,10 @@ export class TenantsService {
     if (!name) throw new BadRequestException('Workspace name is required');
 
     const slug =
-      body.slug?.trim().toLowerCase().replace(/[^a-z0-9-]+/g, '-') ||
+      body.slug
+        ?.trim()
+        .toLowerCase()
+        .replace(/[^a-z0-9-]+/g, '-') ||
       name
         .toLowerCase()
         .replace(/[^a-z0-9]+/g, '-')
@@ -556,7 +550,7 @@ export class TenantsService {
     });
   }
 
-  async assertCanAccessTenantResource(
+  assertCanAccessTenantResource(
     ctx: ActiveTenantContext,
     resourceTenantId: string | null | undefined,
   ) {
@@ -567,28 +561,22 @@ export class TenantsService {
     }
   }
 
-  async getResourceOrDeny<T extends { tenantId?: string | null; id: string }>(
+  getResourceOrDeny<T extends { tenantId?: string | null; id: string }>(
     ctx: ActiveTenantContext,
     resource: T | null,
     label = 'Resource',
-  ): Promise<T> {
+  ): T {
     if (!resource) throw new NotFoundException(`${label} not found`);
-    await this.assertCanAccessTenantResource(ctx, resource.tenantId);
+    this.assertCanAccessTenantResource(ctx, resource.tenantId);
     return resource;
   }
 
-  assertStaffRole(
-    ctx: ActiveTenantContext,
-    allowed: TenantMembershipRole[],
-  ) {
+  assertStaffRole(ctx: ActiveTenantContext, allowed: TenantMembershipRole[]) {
     if (ctx.isPlatformAdmin) return;
     if (ctx.role === 'CLIENT') {
       throw new ForbiddenException('Staff role required');
     }
-    if (
-      ctx.role !== 'PLATFORM_ADMIN' &&
-      !allowed.includes(ctx.role as TenantMembershipRole)
-    ) {
+    if (ctx.role !== 'PLATFORM_ADMIN' && !allowed.includes(ctx.role)) {
       throw new ForbiddenException('Insufficient tenant role');
     }
   }

@@ -116,7 +116,7 @@ class _RecoverScreenState extends ConsumerState<RecoverScreen> {
               const SizedBox(height: 4),
               const Text(
                 'Sleep, stress, and readiness from your wearables.',
-                style: TextStyle(color: AppColors.muted),
+                style: TextStyle(color: AppColors.mutedOnDark),
               ),
               const SizedBox(height: 16),
               Consumer(
@@ -170,7 +170,7 @@ class _RecoverScreenState extends ConsumerState<RecoverScreen> {
                                 const SizedBox(height: 8),
                                 const Text(
                                   'Why this score',
-                                  style: TextStyle(color: AppColors.muted),
+                                  style: TextStyle(color: AppColors.mutedOnDark),
                                 ),
                                 ...drivers.map(
                                   (d) => Text(
@@ -184,7 +184,7 @@ class _RecoverScreenState extends ConsumerState<RecoverScreen> {
                                 data['disclaimer']?.toString() ??
                                     'Wellness guidance only.',
                                 style: const TextStyle(
-                                  color: AppColors.muted,
+                                  color: AppColors.mutedOnDark,
                                   fontSize: 11,
                                 ),
                               ),
@@ -243,7 +243,7 @@ class _RecoverScreenState extends ConsumerState<RecoverScreen> {
                               children: [
                                 const Text(
                                   'Recovery score',
-                                  style: TextStyle(color: AppColors.muted),
+                                  style: TextStyle(color: AppColors.mutedOnDark),
                                 ),
                                 Text(
                                   '${data.recoveryScore ?? '—'}',
@@ -351,7 +351,7 @@ class _RecoverScreenState extends ConsumerState<RecoverScreen> {
                               : Icons.watch_outlined,
                           color: p.status == 'connected'
                               ? AppColors.lime
-                              : AppColors.muted,
+                              : AppColors.mutedOnDark,
                         ),
                         title: Text(
                           p.label,
@@ -359,7 +359,7 @@ class _RecoverScreenState extends ConsumerState<RecoverScreen> {
                         ),
                         subtitle: Text(
                           p.status ?? 'not connected',
-                          style: const TextStyle(color: AppColors.muted),
+                          style: const TextStyle(color: AppColors.mutedOnDark),
                         ),
                       ),
                     ),
@@ -459,7 +459,7 @@ class _RecoveryChart extends StatelessWidget {
                     final label = points[i].dateKey.substring(5);
                     return Text(
                       label,
-                      style: const TextStyle(fontSize: 10, color: AppColors.muted),
+                      style: const TextStyle(fontSize: 10, color: AppColors.mutedOnDark),
                     );
                   },
                 ),
@@ -500,7 +500,7 @@ class _Stat extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(label, style: const TextStyle(color: AppColors.muted)),
+            Text(label, style: const TextStyle(color: AppColors.mutedOnDark)),
             const SizedBox(height: 4),
             Text(
               value,

@@ -40,6 +40,27 @@ type LeadDetail = Lead & {
   contracts: Contract[];
 };
 
+type Coupon = {
+  id: string;
+  code: string;
+  discountType: 'PERCENT' | 'FIXED';
+  discountValue: number;
+  maxRedemptions?: number | null;
+  redemptionCount: number;
+  expiresAt?: string | null;
+  active: boolean;
+};
+
+type MembershipPlan = {
+  id: string;
+  name: string;
+  description?: string | null;
+  priceInr: number;
+  durationDays?: number | null;
+  sessionCount?: number | null;
+  active: boolean;
+};
+
 const STAGES = ['lead', 'qualified', 'proposal', 'active', 'paused'] as const;
 
 function stageLabel(stage: string) {
@@ -72,8 +93,123 @@ export default function CrmPage() {
   const [newPhone, setNewPhone] = useState('');
   const [packageName, setPackageName] = useState('Coaching package');
   const [amountInr, setAmountInr] = useState('5000');
+  const [couponCode, setCouponCode] = useState('');
   const [notes, setNotes] = useState('');
   const [phone, setPhone] = useState('');
+  const [coupons, setCoupons] = useState<Coupon[]>([]);
+  const [newCouponCode, setNewCouponCode] = useState('');
+  const [newCouponType, setNewCouponType] = useState<'PERCENT' | 'FIXED'>(
+    'PERCENT',
+  );
+  const [newCouponValue, setNewCouponValue] = useState('10');
+  const [membershipPlans, setMembershipPlans] = useState<MembershipPlan[]>([]);
+  const [newPlanName, setNewPlanName] = useState('');
+  const [newPlanPrice, setNewPlanPrice] = useState('5000');
+  const [newPlanSessions, setNewPlanSessions] = useState('');
+  const [newPlanDuration, setNewPlanDuration] = useState('');
+
+  const loadCoupons = useCallback(async () => {
+    const rows = await api<Coupon[]>('/crm/coupons');
+    setCoupons(rows);
+  }, [api]);
+
+  async function createCoupon() {
+    if (!newCouponCode.trim()) return;
+    setSaving('coupon');
+    try {
+      await api('/crm/coupons', {
+        method: 'POST',
+        body: JSON.stringify({
+          code: newCouponCode.trim(),
+          discountType: newCouponType,
+          discountValue: Number(newCouponValue) || 10,
+        }),
+      });
+      setNewCouponCode('');
+      setNotice(`Coupon "${newCouponCode.trim().toUpperCase()}" created.`);
+      await loadCoupons();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setSaving(null);
+    }
+  }
+
+  async function deactivateCoupon(id: string) {
+    setSaving(`coupon-${id}`);
+    try {
+      await api(`/crm/coupons/${id}/deactivate`, { method: 'PATCH' });
+      await loadCoupons();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setSaving(null);
+    }
+  }
+
+  const loadMembershipPlans = useCallback(async () => {
+    const rows = await api<MembershipPlan[]>('/crm/membership-plans');
+    setMembershipPlans(rows);
+  }, [api]);
+
+  async function createMembershipPlan() {
+    if (!newPlanName.trim()) return;
+    setSaving('plan');
+    try {
+      await api('/crm/membership-plans', {
+        method: 'POST',
+        body: JSON.stringify({
+          name: newPlanName.trim(),
+          priceInr: Number(newPlanPrice) || 5000,
+          sessionCount: newPlanSessions.trim()
+            ? Number(newPlanSessions)
+            : undefined,
+          durationDays: newPlanDuration.trim()
+            ? Number(newPlanDuration)
+            : undefined,
+        }),
+      });
+      setNewPlanName('');
+      setNewPlanSessions('');
+      setNewPlanDuration('');
+      setNotice(`Plan "${newPlanName.trim()}" created.`);
+      await loadMembershipPlans();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setSaving(null);
+    }
+  }
+
+  async function deactivateMembershipPlan(id: string) {
+    setSaving(`plan-${id}`);
+    try {
+      await api(`/crm/membership-plans/${id}/deactivate`, {
+        method: 'PATCH',
+      });
+      await loadMembershipPlans();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setSaving(null);
+    }
+  }
+
+  async function enrollSelectedLead(planId: string) {
+    if (!selectedId) return;
+    setSaving(`enroll-${planId}`);
+    try {
+      await api(`/crm/leads/${selectedId}/enroll`, {
+        method: 'POST',
+        body: JSON.stringify({ planId }),
+      });
+      setNotice('Lead enrolled in membership plan.');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setSaving(null);
+    }
+  }
 
   const loadDetail = useCallback(
     async (leadId: string) => {
@@ -112,6 +248,8 @@ export default function CrmPage() {
         setSelectedId(initial);
         if (initial) await loadDetail(initial);
         else setDetail(null);
+        await loadCoupons();
+        await loadMembershipPlans();
       } catch (err) {
         setError(err instanceof Error ? err.message : String(err));
       }
@@ -216,9 +354,11 @@ export default function CrmPage() {
         body: JSON.stringify({
           packageName: packageName.trim() || 'Coaching package',
           amountInr: Number(amountInr) || 5000,
+          couponCode: couponCode.trim() || undefined,
         }),
       });
       setNotice('Package invoice created — lead marked active.');
+      setCouponCode('');
       await load();
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
@@ -553,6 +693,15 @@ export default function CrmPage() {
                             inputMode="numeric"
                           />
                         </label>
+                        <label className={styles.label}>
+                          Coupon code (optional)
+                          <input
+                            className={styles.input}
+                            value={couponCode}
+                            onChange={(e) => setCouponCode(e.target.value)}
+                            placeholder="e.g. SAVE20"
+                          />
+                        </label>
                         <button
                           className={styles.assignSelectedButton}
                           type="button"
@@ -606,6 +755,269 @@ export default function CrmPage() {
                                 ) : (
                                   <span className={styles.activePill}>Paid</span>
                                 )}
+                              </li>
+                            ))}
+                          </ul>
+                        )}
+                      </div>
+                    </div>
+                  </section>
+
+                  <section className={styles.assignmentCatalog}>
+                    <header>
+                      <div>
+                        <h3>Coupons</h3>
+                        <p>
+                          Discount codes clients can redeem on a package
+                          invoice — separate from 23PrimeFit&apos;s own SaaS
+                          billing discounts.
+                        </p>
+                      </div>
+                      <span>Commerce</span>
+                    </header>
+                    <div className={styles.assignmentColumns}>
+                      <div className={styles.suiteFormColumn}>
+                        <div className={styles.assignmentColumnTitle}>
+                          <span>
+                            <Icon name="plus" size={17} />
+                          </span>
+                          <div>
+                            <h4>New coupon</h4>
+                            <p>Apply it by code at invoice time</p>
+                          </div>
+                        </div>
+                        <label className={styles.label}>
+                          Code
+                          <input
+                            className={styles.input}
+                            value={newCouponCode}
+                            onChange={(e) => setNewCouponCode(e.target.value)}
+                            placeholder="e.g. SAVE20"
+                          />
+                        </label>
+                        <label className={styles.label}>
+                          Discount type
+                          <select
+                            className={styles.input}
+                            value={newCouponType}
+                            onChange={(e) =>
+                              setNewCouponType(
+                                e.target.value as 'PERCENT' | 'FIXED',
+                              )
+                            }
+                          >
+                            <option value="PERCENT">Percent off</option>
+                            <option value="FIXED">Fixed amount (INR)</option>
+                          </select>
+                        </label>
+                        <label className={styles.label}>
+                          {newCouponType === 'PERCENT'
+                            ? 'Percent off'
+                            : 'Amount off (INR)'}
+                          <input
+                            className={styles.input}
+                            value={newCouponValue}
+                            onChange={(e) => setNewCouponValue(e.target.value)}
+                            inputMode="numeric"
+                          />
+                        </label>
+                        <button
+                          className={styles.assignSelectedButton}
+                          type="button"
+                          onClick={createCoupon}
+                          disabled={saving === 'coupon'}
+                        >
+                          <Icon name="check" size={15} />
+                          {saving === 'coupon' ? 'Creating…' : 'Create coupon'}
+                        </button>
+                      </div>
+                      <div className={styles.suiteFormColumn}>
+                        <div className={styles.assignmentColumnTitle}>
+                          <span>
+                            <Icon name="activity" size={17} />
+                          </span>
+                          <div>
+                            <h4>Active coupons</h4>
+                            <p>
+                              {coupons.filter((c) => c.active).length === 0
+                                ? 'None yet'
+                                : `${coupons.filter((c) => c.active).length} live`}
+                            </p>
+                          </div>
+                        </div>
+                        {coupons.length === 0 ? (
+                          <p className={styles.hint}>
+                            Create a coupon to offer clients a discount.
+                          </p>
+                        ) : (
+                          <ul className={styles.suiteList}>
+                            {coupons.map((c) => (
+                              <li key={c.id}>
+                                <div>
+                                  <strong>{c.code}</strong>
+                                  <small>
+                                    {c.discountType === 'PERCENT'
+                                      ? `${c.discountValue}% off`
+                                      : `₹${c.discountValue.toLocaleString()} off`}{' '}
+                                    · {c.redemptionCount} redeemed
+                                    {c.maxRedemptions
+                                      ? ` / ${c.maxRedemptions}`
+                                      : ''}
+                                  </small>
+                                </div>
+                                {c.active ? (
+                                  <button
+                                    type="button"
+                                    className={styles.secondaryButton}
+                                    onClick={() => deactivateCoupon(c.id)}
+                                    disabled={saving === `coupon-${c.id}`}
+                                  >
+                                    Deactivate
+                                  </button>
+                                ) : (
+                                  <span className={styles.neutralPill}>
+                                    Inactive
+                                  </span>
+                                )}
+                              </li>
+                            ))}
+                          </ul>
+                        )}
+                      </div>
+                    </div>
+                  </section>
+
+                  <section className={styles.assignmentCatalog}>
+                    <header>
+                      <div>
+                        <h3>Membership plans</h3>
+                        <p>
+                          Recurring or session-pack packages clients enroll
+                          into — separate from 23PrimeFit&apos;s own SaaS
+                          subscription plans.
+                        </p>
+                      </div>
+                      <span>Commerce</span>
+                    </header>
+                    <div className={styles.assignmentColumns}>
+                      <div className={styles.suiteFormColumn}>
+                        <div className={styles.assignmentColumnTitle}>
+                          <span>
+                            <Icon name="plus" size={17} />
+                          </span>
+                          <div>
+                            <h4>New plan</h4>
+                            <p>Leave sessions or duration blank for unlimited</p>
+                          </div>
+                        </div>
+                        <label className={styles.label}>
+                          Name
+                          <input
+                            className={styles.input}
+                            value={newPlanName}
+                            onChange={(e) => setNewPlanName(e.target.value)}
+                            placeholder="e.g. 12-Session Pack"
+                          />
+                        </label>
+                        <label className={styles.label}>
+                          Price (INR)
+                          <input
+                            className={styles.input}
+                            value={newPlanPrice}
+                            onChange={(e) => setNewPlanPrice(e.target.value)}
+                            inputMode="numeric"
+                          />
+                        </label>
+                        <label className={styles.label}>
+                          Session count (optional)
+                          <input
+                            className={styles.input}
+                            value={newPlanSessions}
+                            onChange={(e) =>
+                              setNewPlanSessions(e.target.value)
+                            }
+                            inputMode="numeric"
+                          />
+                        </label>
+                        <label className={styles.label}>
+                          Duration in days (optional)
+                          <input
+                            className={styles.input}
+                            value={newPlanDuration}
+                            onChange={(e) =>
+                              setNewPlanDuration(e.target.value)
+                            }
+                            inputMode="numeric"
+                          />
+                        </label>
+                        <button
+                          className={styles.assignSelectedButton}
+                          type="button"
+                          onClick={createMembershipPlan}
+                          disabled={saving === 'plan'}
+                        >
+                          <Icon name="check" size={15} />
+                          {saving === 'plan' ? 'Creating…' : 'Create plan'}
+                        </button>
+                      </div>
+                      <div className={styles.suiteFormColumn}>
+                        <div className={styles.assignmentColumnTitle}>
+                          <span>
+                            <Icon name="activity" size={17} />
+                          </span>
+                          <div>
+                            <h4>Plans</h4>
+                            <p>
+                              {membershipPlans.length === 0
+                                ? 'None yet'
+                                : `${membershipPlans.length} active`}
+                            </p>
+                          </div>
+                        </div>
+                        {membershipPlans.length === 0 ? (
+                          <p className={styles.hint}>
+                            Create a plan, then enroll the selected lead
+                            below.
+                          </p>
+                        ) : (
+                          <ul className={styles.suiteList}>
+                            {membershipPlans.map((p) => (
+                              <li key={p.id}>
+                                <div>
+                                  <strong>{p.name}</strong>
+                                  <small>
+                                    ₹{p.priceInr.toLocaleString()}
+                                    {p.sessionCount
+                                      ? ` · ${p.sessionCount} sessions`
+                                      : ''}
+                                    {p.durationDays
+                                      ? ` · ${p.durationDays} days`
+                                      : ''}
+                                  </small>
+                                </div>
+                                <div className={styles.inlineActions}>
+                                  <button
+                                    type="button"
+                                    className={styles.secondaryButton}
+                                    onClick={() => enrollSelectedLead(p.id)}
+                                    disabled={
+                                      !selectedId ||
+                                      saving === `enroll-${p.id}`
+                                    }
+                                  >
+                                    Enroll lead
+                                  </button>
+                                  <button
+                                    type="button"
+                                    className={styles.secondaryButton}
+                                    onClick={() =>
+                                      deactivateMembershipPlan(p.id)
+                                    }
+                                    disabled={saving === `plan-${p.id}`}
+                                  >
+                                    Deactivate
+                                  </button>
+                                </div>
                               </li>
                             ))}
                           </ul>

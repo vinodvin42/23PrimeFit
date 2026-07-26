@@ -21,6 +21,7 @@ export type IconName =
   | 'settings'
   | 'sparkles'
   | 'trend'
+  | 'trophy'
   | 'warning';
 
 const paths: Record<IconName, React.ReactNode> = {
@@ -92,6 +93,12 @@ const paths: Record<IconName, React.ReactNode> = {
   ),
   sparkles: <path d="m12 3 1.2 3.8L17 8l-3.8 1.2L12 13l-1.2-3.8L7 8l3.8-1.2L12 3ZM5 14l.8 2.2L8 17l-2.2.8L5 20l-.8-2.2L2 17l2.2-.8L5 14Zm13-1 .9 2.1L21 16l-2.1.9L18 19l-.9-2.1L15 16l2.1-.9L18 13Z" />,
   trend: <path d="m3 17 6-6 4 4 8-9M15 6h6v6" />,
+  trophy: (
+    <>
+      <path d="M8 21h8M12 17v4M7 4h10v4a5 5 0 0 1-10 0V4Z" />
+      <path d="M17 5h2.5a2.5 2.5 0 0 1 0 5H17M7 5H4.5a2.5 2.5 0 0 0 0 5H7" />
+    </>
+  ),
   warning: (
     <>
       <path d="M10.3 3.7 2.6 17a2 2 0 0 0 1.7 3h15.4a2 2 0 0 0 1.7-3L13.7 3.7a2 2 0 0 0-3.4 0Z" />

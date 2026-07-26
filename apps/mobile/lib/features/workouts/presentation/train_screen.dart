@@ -33,7 +33,7 @@ class TrainScreen extends ConsumerWidget {
               const SizedBox(height: 4),
               const Text(
                 'Your programs and today’s session.',
-                style: TextStyle(color: AppColors.muted),
+                style: TextStyle(color: AppColors.mutedOnDark),
               ),
               const SizedBox(height: 20),
               mine.when(
@@ -93,7 +93,7 @@ class TrainScreen extends ConsumerWidget {
                               ),
                               subtitle: Text(
                                 '${p.level} · ${p.durationMin} min · ${p.daysPerWeek}x/week\n${p.description}',
-                                style: const TextStyle(color: AppColors.muted),
+                                style: const TextStyle(color: AppColors.mutedOnDark),
                               ),
                               isThreeLine: true,
                               trailing: TextButton(
@@ -129,7 +129,7 @@ class TrainScreen extends ConsumerWidget {
                         (s) => ListTile(
                           contentPadding: EdgeInsets.zero,
                           title: Text(s.title, style: const TextStyle(color: AppColors.white)),
-                          subtitle: Text(s.status, style: const TextStyle(color: AppColors.muted)),
+                          subtitle: Text(s.status, style: const TextStyle(color: AppColors.mutedOnDark)),
                           trailing: const Icon(Icons.chevron_right, color: AppColors.lime),
                           onTap: () => context.push('/session/${s.id}'),
                         ),
@@ -185,7 +185,7 @@ class _SessionCard extends StatelessWidget {
                     fontSize: 16,
                   ),
                 ),
-                Text(status, style: const TextStyle(color: AppColors.muted)),
+                Text(status, style: const TextStyle(color: AppColors.mutedOnDark)),
               ],
             ),
           ),

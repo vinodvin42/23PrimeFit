@@ -21,6 +21,12 @@ import 'package:primefit_mobile/features/workouts/presentation/train_screen.dart
 import 'package:primefit_mobile/features/nutrition/presentation/fuel_screen.dart';
 import 'package:primefit_mobile/features/recovery/presentation/recover_screen.dart';
 import 'package:primefit_mobile/features/coach/presentation/coach_hub_screen.dart';
+import 'package:primefit_mobile/features/community/presentation/community_screen.dart';
+import 'package:primefit_mobile/features/community/presentation/friends_screen.dart';
+import 'package:primefit_mobile/features/community/presentation/stories_screen.dart';
+import 'package:primefit_mobile/features/medications/presentation/medications_screen.dart';
+import 'package:primefit_mobile/features/health_timeline/presentation/health_timeline_screen.dart';
+import 'package:primefit_mobile/features/vitals/presentation/vitals_screen.dart';
 import 'package:primefit_mobile/features/activity/presentation/run_activity_screen.dart';
 import 'package:primefit_mobile/features/activity/presentation/workout_timer_screen.dart';
 import 'package:primefit_mobile/features/activity/presentation/training_complete_screen.dart';
@@ -89,6 +95,30 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(path: '/fuel', builder: (context, state) => const FuelScreen()),
       GoRoute(path: '/recover', builder: (context, state) => const RecoverScreen()),
       GoRoute(path: '/coach', builder: (context, state) => const CoachHubScreen()),
+      GoRoute(
+        path: '/community',
+        builder: (context, state) => const CommunityScreen(),
+      ),
+      GoRoute(
+        path: '/friends',
+        builder: (context, state) => const FriendsScreen(),
+      ),
+      GoRoute(
+        path: '/stories',
+        builder: (context, state) => const StoriesScreen(),
+      ),
+      GoRoute(
+        path: '/medications',
+        builder: (context, state) => const MedicationsScreen(),
+      ),
+      GoRoute(
+        path: '/vitals',
+        builder: (context, state) => const VitalsScreen(),
+      ),
+      GoRoute(
+        path: '/health-timeline',
+        builder: (context, state) => const HealthTimelineScreen(),
+      ),
       GoRoute(path: '/cricket', builder: (context, state) => const CricketScreen()),
       GoRoute(path: '/wellness', builder: (context, state) => const WellnessScreen()),
       GoRoute(

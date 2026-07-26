@@ -143,6 +143,25 @@ model User {
   healthspanSnapshots HealthspanSnapshot[]
   foodVisionLogs      FoodVisionLog[]
   postureAnalyses     PostureAnalysis[]
+  challengeParticipants ChallengeParticipant[]
+  achievements          Achievement[]
+  hydrationLogs         HydrationLog[]
+  supplements           Supplement[]
+  supplementLogs        SupplementLog[]
+  fastingSessions       FastingSession[]
+  shoppingListItems     ShoppingListItem[]
+  medications           Medication[]
+  medicationLogs        MedicationLog[]
+  bloodPressureReadings BloodPressureReading[]
+  bloodSugarReadings    BloodSugarReading[]
+  allergies             Allergy[]
+  vaccinations          Vaccination[]
+  bodyMeasurements      BodyMeasurement[]
+  sentFriendRequests     FriendRequest[] @relation("FriendRequestsSent")
+  receivedFriendRequests FriendRequest[] @relation("FriendRequestsReceived")
+  eventRsvps             EventRsvp[]
+  transformationStories  TransformationStory[]
+  storyCheers            StoryCheer[]
 }
 
 model Profile {
@@ -597,6 +616,8 @@ model ProgressPhoto {
   createdAt    DateTime @default(now())
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  storiesAsBefore TransformationStory[] @relation("StoryBeforePhoto")
+  storiesAsAfter  TransformationStory[] @relation("StoryAfterPhoto")
 
   @@index([userId, takenAt])
 }
@@ -873,6 +894,17 @@ model Tenant {
   marketplaceEnrollments MarketplaceEnrollment[]
   apiKeys             ApiKey[]
   webhookEndpoints    WebhookEndpoint[]
+  challenges             Challenge[]
+  challengeParticipants  ChallengeParticipant[]
+  achievements           Achievement[]
+  tenantCoupons          TenantCoupon[]
+  membershipPlans        MembershipPlan[]
+  membershipEnrollments  MembershipEnrollment[]
+  friendRequests         FriendRequest[]
+  communityEvents        CommunityEvent[]
+  eventRsvps             EventRsvp[]
+  transformationStories  TransformationStory[]
+  storyCheers            StoryCheer[]
 
   @@index([type, active])
   @@index([ownerUserId])
@@ -1245,4 +1277,429 @@ model WebhookEndpoint {
   tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
 
   @@index([tenantId, active])
+}
+
+enum ChallengeKind {
+  WORKOUT_COUNT
+  STREAK_DAYS
+  NUTRITION_LOG_COUNT
+  CUSTOM
+}
+
+/// Community: tenant-scoped challenges coaches run for their clients.
+model Challenge {
+  id              String        @id @default(cuid())
+  tenantId        String
+  title           String
+  description     String?
+  kind            ChallengeKind @default(CUSTOM)
+  targetValue     Int           @default(1)
+  startAt         DateTime
+  endAt           DateTime
+  createdByUserId String
+  active          Boolean       @default(true)
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  tenant       Tenant                 @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  participants ChallengeParticipant[]
+
+  @@index([tenantId, active])
+}
+
+model ChallengeParticipant {
+  id            String    @id @default(cuid())
+  tenantId      String
+  challengeId   String
+  userId        String
+  progressValue Int       @default(0)
+  completedAt   DateTime?
+  joinedAt      DateTime  @default(now())
+
+  tenant    Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  challenge Challenge @relation(fields: [challengeId], references: [id], onDelete: Cascade)
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([challengeId, userId])
+  @@index([tenantId, userId])
+}
+
+/// Community: gamification badges unlocked per tenant membership (streaks, challenge wins).
+model Achievement {
+  id          String   @id @default(cuid())
+  tenantId    String
+  userId      String
+  code        String
+  title       String
+  description String?
+  unlockedAt  DateTime @default(now())
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, userId, code])
+  @@index([tenantId, userId])
+}
+
+/// Nutrition: daily water intake logging (mirrors NutritionLog's user+dateKey scoping).
+model HydrationLog {
+  id       String   @id @default(cuid())
+  userId   String
+  amountMl Int
+  loggedAt DateTime @default(now())
+  dateKey  String
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, dateKey])
+}
+
+/// Nutrition: user-defined supplement stack + daily intake checklist.
+model Supplement {
+  id        String   @id @default(cuid())
+  userId    String
+  name      String
+  dosage    String?
+  schedule  String?
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  logs SupplementLog[]
+
+  @@index([userId, active])
+}
+
+model SupplementLog {
+  id           String   @id @default(cuid())
+  userId       String
+  supplementId String
+  takenAt      DateTime @default(now())
+  dateKey      String
+
+  user       User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  supplement Supplement @relation(fields: [supplementId], references: [id], onDelete: Cascade)
+
+  @@unique([supplementId, dateKey])
+  @@index([userId, dateKey])
+}
+
+/// Nutrition: personal fasting-window log (wellness only, not a medical protocol).
+model FastingSession {
+  id          String    @id @default(cuid())
+  userId      String
+  startedAt   DateTime  @default(now())
+  endedAt     DateTime?
+  targetHours Float     @default(16)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, startedAt])
+}
+
+/// Nutrition: personal grocery checklist, addable manually or generated from a recipe.
+model ShoppingListItem {
+  id        String   @id @default(cuid())
+  userId    String
+  name      String
+  quantity  String?
+  checked   Boolean  @default(false)
+  source    String?
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, checked])
+}
+
+/// Health: user-defined medication reminder list (personal log, not a prescription or medical record).
+model Medication {
+  id        String   @id @default(cuid())
+  userId    String
+  name      String
+  dosage    String?
+  schedule  String?
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  logs MedicationLog[]
+
+  @@index([userId, active])
+}
+
+model MedicationLog {
+  id           String   @id @default(cuid())
+  userId       String
+  medicationId String
+  takenAt      DateTime @default(now())
+  dateKey      String
+
+  user       User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  medication Medication @relation(fields: [medicationId], references: [id], onDelete: Cascade)
+
+  @@unique([medicationId, dateKey])
+  @@index([userId, dateKey])
+}
+
+/// Health: personal blood pressure log (trend tracking, not a diagnosis).
+model BloodPressureReading {
+  id         String   @id @default(cuid())
+  userId     String
+  systolic   Int
+  diastolic  Int
+  pulseBpm   Int?
+  notes      String?
+  recordedAt DateTime @default(now())
+  dateKey    String
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, recordedAt])
+}
+
+/// Health: personal blood sugar log (trend tracking, not a diagnosis).
+model BloodSugarReading {
+  id         String   @id @default(cuid())
+  userId     String
+  valueMgDl  Float
+  context    String?
+  notes      String?
+  recordedAt DateTime @default(now())
+  dateKey    String
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, recordedAt])
+}
+
+enum AllergySeverity {
+  MILD
+  MODERATE
+  SEVERE
+}
+
+/// Health: personal allergy list (self-reported, not a clinical diagnosis).
+model Allergy {
+  id        String          @id @default(cuid())
+  userId    String
+  allergen  String
+  severity  AllergySeverity @default(MILD)
+  reaction  String?
+  active    Boolean         @default(true)
+  createdAt DateTime        @default(now())
+  updatedAt DateTime        @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, active])
+}
+
+/// Health: personal vaccination record (self-reported, not an official immunization registry).
+model Vaccination {
+  id             String    @id @default(cuid())
+  userId         String
+  name           String
+  administeredAt DateTime
+  nextDueAt      DateTime?
+  notes          String?
+  createdAt      DateTime  @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, administeredAt])
+}
+
+/// Health: personal body measurement log (circumference/composition trend tracking).
+model BodyMeasurement {
+  id           String   @id @default(cuid())
+  userId       String
+  waistCm      Float?
+  hipCm        Float?
+  chestCm      Float?
+  armCm        Float?
+  thighCm      Float?
+  bodyFatPct   Float?
+  muscleMassKg Float?
+  notes        String?
+  recordedAt   DateTime @default(now())
+  dateKey      String
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, recordedAt])
+}
+
+enum TenantCouponDiscountType {
+  PERCENT
+  FIXED
+}
+
+/// Business: tenant-scoped discount code a coach applies to their own client package
+/// invoices — distinct from the platform-level Coupon model above (23PrimeFit's SaaS
+/// billing discount for a coach's own subscription). Never mix the two.
+model TenantCoupon {
+  id              String                   @id @default(cuid())
+  tenantId        String
+  code            String
+  discountType    TenantCouponDiscountType @default(PERCENT)
+  discountValue   Float
+  maxRedemptions  Int?
+  redemptionCount Int                      @default(0)
+  expiresAt       DateTime?
+  active          Boolean                  @default(true)
+  createdAt       DateTime                 @default(now())
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, code])
+  @@index([tenantId, active])
+}
+
+enum MembershipEnrollmentStatus {
+  ACTIVE
+  EXPIRED
+  CANCELLED
+}
+
+/// Business: a coach's recurring or session-pack package clients enroll into.
+/// Distinct from the platform Plan/Subscription model, which is 23PrimeFit's
+/// own SaaS billing for the coach's tenant subscription.
+model MembershipPlan {
+  id           String   @id @default(cuid())
+  tenantId     String
+  name         String
+  description  String?
+  priceInr     Int
+  durationDays Int?
+  sessionCount Int?
+  active       Boolean  @default(true)
+  createdAt    DateTime @default(now())
+
+  tenant      Tenant                 @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  enrollments MembershipEnrollment[]
+
+  @@index([tenantId, active])
+}
+
+model MembershipEnrollment {
+  id                String                     @id @default(cuid())
+  tenantId          String
+  planId            String
+  clientId          String
+  startedAt         DateTime                   @default(now())
+  expiresAt         DateTime?
+  sessionsRemaining Int?
+  status            MembershipEnrollmentStatus @default(ACTIVE)
+  createdAt         DateTime                   @default(now())
+
+  tenant Tenant         @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  plan   MembershipPlan @relation(fields: [planId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, clientId])
+  @@index([planId])
+}
+
+enum FriendRequestStatus {
+  PENDING
+  ACCEPTED
+  DECLINED
+}
+
+/// Community: same-tenant-only friend connection between two members of one workspace.
+/// Never crosses tenants — a client of Tenant A can never see or friend a client of Tenant B.
+model FriendRequest {
+  id          String              @id @default(cuid())
+  tenantId    String
+  fromUserId  String
+  toUserId    String
+  status      FriendRequestStatus @default(PENDING)
+  createdAt   DateTime            @default(now())
+  respondedAt DateTime?
+
+  tenant   Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  fromUser User   @relation("FriendRequestsSent", fields: [fromUserId], references: [id], onDelete: Cascade)
+  toUser   User   @relation("FriendRequestsReceived", fields: [toUserId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, fromUserId, toUserId])
+  @@index([tenantId, toUserId, status])
+  @@index([tenantId, fromUserId, status])
+}
+
+enum EventRsvpStatus {
+  GOING
+  MAYBE
+  DECLINED
+}
+
+/// Community: tenant-scoped event (in-person or virtual), staff-created, client RSVP.
+model CommunityEvent {
+  id              String   @id @default(cuid())
+  tenantId        String
+  title           String
+  description     String?
+  location        String?
+  startAt         DateTime
+  endAt           DateTime?
+  createdByUserId String
+  active          Boolean  @default(true)
+  createdAt       DateTime @default(now())
+
+  tenant Tenant      @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  rsvps  EventRsvp[]
+
+  @@index([tenantId, active, startAt])
+}
+
+model EventRsvp {
+  id        String          @id @default(cuid())
+  tenantId  String
+  eventId   String
+  userId    String
+  status    EventRsvpStatus @default(GOING)
+  createdAt DateTime        @default(now())
+  updatedAt DateTime        @updatedAt
+
+  tenant Tenant         @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  event  CommunityEvent @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  user   User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([eventId, userId])
+  @@index([tenantId, userId])
+}
+
+/// Community: a client's before/after progress story, optionally linked to their own ProgressPhoto rows.
+model TransformationStory {
+  id            String   @id @default(cuid())
+  tenantId      String
+  userId        String
+  caption       String?
+  beforePhotoId String?
+  afterPhotoId  String?
+  createdAt     DateTime @default(now())
+
+  tenant      Tenant        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  user        User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  beforePhoto ProgressPhoto? @relation("StoryBeforePhoto", fields: [beforePhotoId], references: [id], onDelete: SetNull)
+  afterPhoto  ProgressPhoto? @relation("StoryAfterPhoto", fields: [afterPhotoId], references: [id], onDelete: SetNull)
+  cheers      StoryCheer[]
+
+  @@index([tenantId, createdAt])
+}
+
+model StoryCheer {
+  id        String   @id @default(cuid())
+  tenantId  String
+  storyId   String
+  userId    String
+  createdAt DateTime @default(now())
+
+  tenant Tenant              @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  story  TransformationStory @relation(fields: [storyId], references: [id], onDelete: Cascade)
+  user   User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([storyId, userId])
+  @@index([tenantId, userId])
 }

@@ -20,7 +20,7 @@ class _FuelScreenState extends ConsumerState<FuelScreen>
   @override
   void initState() {
     super.initState();
-    _tabs = TabController(length: 3, vsync: this);
+    _tabs = TabController(length: 6, vsync: this);
   }
 
   @override
@@ -56,20 +56,24 @@ class _FuelScreenState extends ConsumerState<FuelScreen>
                   const SizedBox(height: 4),
                   const Text(
                     'Log meals, scan barcodes, and follow your meal plan.',
-                    style: TextStyle(color: AppColors.muted),
+                    style: TextStyle(color: AppColors.mutedOnDark),
                   ),
                 ],
               ),
             ),
             TabBar(
               controller: _tabs,
+              isScrollable: true,
               labelColor: AppColors.lime,
-              unselectedLabelColor: AppColors.muted,
+              unselectedLabelColor: AppColors.mutedOnDark,
               indicatorColor: AppColors.lime,
               tabs: const [
                 Tab(text: 'Today'),
                 Tab(text: 'Add'),
                 Tab(text: 'Recipes'),
+                Tab(text: 'Supplements'),
+                Tab(text: 'Fasting'),
+                Tab(text: 'Shopping'),
               ],
             ),
             Expanded(
@@ -79,6 +83,9 @@ class _FuelScreenState extends ConsumerState<FuelScreen>
                   _TodayTab(),
                   _AddFoodTab(),
                   _RecipesTab(),
+                  _SupplementsTab(),
+                  _FastingTab(),
+                  _ShoppingListTab(),
                 ],
               ),
             ),
@@ -146,6 +153,8 @@ class _TodayTab extends ConsumerWidget {
                     ),
                   ),
                   const SizedBox(height: 20),
+                  const _HydrationCard(),
+                  const SizedBox(height: 20),
                   const Text("Today's log", style: TextStyle(color: AppColors.white, fontSize: 20, fontWeight: FontWeight.w700)),
                   const SizedBox(height: 8),
                   if (data.logs.isEmpty)
@@ -186,7 +195,7 @@ class _TodayTab extends ConsumerWidget {
                           ),
                           subtitle: Text(
                             log.mealType,
-                            style: const TextStyle(color: AppColors.muted),
+                            style: const TextStyle(color: AppColors.mutedOnDark),
                           ),
                           trailing: Text(
                             '${log.calories.round()} kcal',
@@ -198,6 +207,102 @@ class _TodayTab extends ConsumerWidget {
                 ],
               );
             },
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _HydrationCard extends ConsumerStatefulWidget {
+  const _HydrationCard();
+
+  @override
+  ConsumerState<_HydrationCard> createState() => _HydrationCardState();
+}
+
+class _HydrationCardState extends ConsumerState<_HydrationCard> {
+  bool _busy = false;
+
+  Future<void> _add(int ml) async {
+    setState(() => _busy = true);
+    try {
+      await ref.read(fitnessRepositoryProvider).logHydration(ml);
+      ref.invalidate(hydrationTodayProvider);
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text('$e')));
+      }
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final hydration = ref.watch(hydrationTodayProvider);
+    return GlassCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Icon(Icons.water_drop, color: AppColors.lime),
+              const SizedBox(width: 8),
+              const Text(
+                'Hydration',
+                style: TextStyle(
+                  color: AppColors.white,
+                  fontWeight: FontWeight.w700,
+                  fontSize: 16,
+                ),
+              ),
+              const Spacer(),
+              hydration.when(
+                loading: () => const SizedBox.shrink(),
+                error: (_, __) => const SizedBox.shrink(),
+                data: (data) => Text(
+                  '${data.totalMl} / ${data.targetMl} ml',
+                  style: const TextStyle(color: AppColors.mutedOnDark),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          hydration.when(
+            loading: () =>
+                const LinearProgressIndicator(color: AppColors.lime),
+            error: (e, _) =>
+                Text('$e', style: const TextStyle(color: AppColors.danger)),
+            data: (data) {
+              final ratio = data.targetMl > 0
+                  ? (data.totalMl / data.targetMl).clamp(0, 1).toDouble()
+                  : 0.0;
+              return ClipRRect(
+                borderRadius: BorderRadius.circular(8),
+                child: LinearProgressIndicator(
+                  value: ratio,
+                  minHeight: 10,
+                  backgroundColor: AppColors.card,
+                  color: AppColors.lime,
+                ),
+              );
+            },
+          ),
+          const SizedBox(height: 10),
+          Row(
+            children: [
+              OutlinedButton(
+                onPressed: _busy ? null : () => _add(250),
+                child: const Text('+250 ml'),
+              ),
+              const SizedBox(width: 8),
+              OutlinedButton(
+                onPressed: _busy ? null : () => _add(500),
+                child: const Text('+500 ml'),
+              ),
+            ],
           ),
         ],
       ),
@@ -397,7 +502,7 @@ class _AddFoodTabState extends ConsumerState<_AddFoodTab> {
             title: Text(item.name, style: const TextStyle(color: AppColors.white)),
             subtitle: Text(
               '${item.brand ?? item.source ?? 'food'} · ${item.calories.round()} kcal · ${item.servingLabel}',
-              style: const TextStyle(color: AppColors.muted),
+              style: const TextStyle(color: AppColors.mutedOnDark),
             ),
             trailing: IconButton(
               icon: const Icon(Icons.add_circle, color: AppColors.lime),
@@ -490,7 +595,7 @@ class _RecipesTabState extends ConsumerState<_RecipesTab> {
                             ),
                             subtitle: Text(
                               '${p.dailyKcal} kcal/day · ${p.description}',
-                              style: const TextStyle(color: AppColors.muted),
+                              style: const TextStyle(color: AppColors.mutedOnDark),
                             ),
                             trailing: TextButton(
                               onPressed: () async {
@@ -519,7 +624,7 @@ class _RecipesTabState extends ConsumerState<_RecipesTab> {
           _remoteSource.isEmpty
               ? 'Spoonacular when keyed, else seeded fallback.'
               : 'Source: $_remoteSource',
-          style: const TextStyle(color: AppColors.muted, fontSize: 12),
+          style: const TextStyle(color: AppColors.mutedOnDark, fontSize: 12),
         ),
         const SizedBox(height: 8),
         Row(
@@ -559,7 +664,7 @@ class _RecipesTabState extends ConsumerState<_RecipesTab> {
                     if (r['servings'] != null) '${r['servings']} servings',
                     if (r['calories'] != null) '${r['calories']} kcal',
                   ].join(' · '),
-                  style: const TextStyle(color: AppColors.muted),
+                  style: const TextStyle(color: AppColors.mutedOnDark),
                 ),
                 trailing: TextButton(
                   onPressed: () async {
@@ -605,7 +710,7 @@ class _RecipesTabState extends ConsumerState<_RecipesTab> {
                               ),
                               child: ExpansionTile(
                                 iconColor: AppColors.lime,
-                                collapsedIconColor: AppColors.muted,
+                                collapsedIconColor: AppColors.mutedOnDark,
                                 title: Text(
                                   r.title,
                                   style: const TextStyle(
@@ -615,7 +720,7 @@ class _RecipesTabState extends ConsumerState<_RecipesTab> {
                                 ),
                                 subtitle: Text(
                                   '${r.calories.round()} kcal · ${r.proteinG.round()}g protein · ${r.prepMin + r.cookMin} min',
-                                  style: const TextStyle(color: AppColors.muted),
+                                  style: const TextStyle(color: AppColors.mutedOnDark),
                                 ),
                                 children: [
                                   Padding(
@@ -639,6 +744,41 @@ class _RecipesTabState extends ConsumerState<_RecipesTab> {
                                           (i) => Text(
                                             '• $i',
                                             style: const TextStyle(color: AppColors.soft),
+                                          ),
+                                        ),
+                                        const SizedBox(height: 8),
+                                        Align(
+                                          alignment: Alignment.centerLeft,
+                                          child: TextButton.icon(
+                                            onPressed: () async {
+                                              final repo = ref.read(
+                                                fitnessRepositoryProvider,
+                                              );
+                                              await repo
+                                                  .addShoppingListItemsFromRecipe(
+                                                r.slug,
+                                              );
+                                              ref.invalidate(
+                                                shoppingListProvider,
+                                              );
+                                              if (context.mounted) {
+                                                ScaffoldMessenger.of(context)
+                                                    .showSnackBar(
+                                                  SnackBar(
+                                                    content: Text(
+                                                      'Added ${r.ingredients.length} items to your shopping list',
+                                                    ),
+                                                  ),
+                                                );
+                                              }
+                                            },
+                                            icon: const Icon(
+                                              Icons.shopping_cart_outlined,
+                                              color: AppColors.lime,
+                                            ),
+                                            label: const Text(
+                                              'Add ingredients to list',
+                                            ),
                                           ),
                                         ),
                                         const SizedBox(height: 8),
@@ -668,6 +808,574 @@ class _RecipesTabState extends ConsumerState<_RecipesTab> {
                 ),
         ),
       ],
+    );
+  }
+}
+
+class _SupplementsTab extends ConsumerStatefulWidget {
+  const _SupplementsTab();
+
+  @override
+  ConsumerState<_SupplementsTab> createState() => _SupplementsTabState();
+}
+
+class _SupplementsTabState extends ConsumerState<_SupplementsTab> {
+  final _name = TextEditingController();
+  final _dosage = TextEditingController();
+  final _schedule = TextEditingController();
+  bool _saving = false;
+  String? _busyId;
+
+  @override
+  void dispose() {
+    _name.dispose();
+    _dosage.dispose();
+    _schedule.dispose();
+    super.dispose();
+  }
+
+  Future<void> _add() async {
+    if (_name.text.trim().isEmpty) return;
+    setState(() => _saving = true);
+    try {
+      await ref.read(fitnessRepositoryProvider).createSupplement(
+            name: _name.text.trim(),
+            dosage: _dosage.text.trim(),
+            schedule: _schedule.text.trim(),
+          );
+      _name.clear();
+      _dosage.clear();
+      _schedule.clear();
+      ref.invalidate(supplementsProvider);
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text('$e')));
+      }
+    } finally {
+      if (mounted) setState(() => _saving = false);
+    }
+  }
+
+  Future<void> _toggle(String id, bool takenToday) async {
+    setState(() => _busyId = id);
+    try {
+      final repo = ref.read(fitnessRepositoryProvider);
+      if (takenToday) {
+        await repo.unlogSupplementTaken(id);
+      } else {
+        await repo.logSupplementTaken(id);
+      }
+      ref.invalidate(supplementsProvider);
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text('$e')));
+      }
+    } finally {
+      if (mounted) setState(() => _busyId = null);
+    }
+  }
+
+  Future<void> _remove(String id) async {
+    setState(() => _busyId = id);
+    try {
+      await ref.read(fitnessRepositoryProvider).deactivateSupplement(id);
+      ref.invalidate(supplementsProvider);
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text('$e')));
+      }
+    } finally {
+      if (mounted) setState(() => _busyId = null);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final supplements = ref.watch(supplementsProvider);
+    return RefreshIndicator(
+      color: AppColors.lime,
+      onRefresh: () async {
+        ref.invalidate(supplementsProvider);
+        await ref.read(supplementsProvider.future);
+      },
+      child: ListView(
+        padding: const EdgeInsets.all(24),
+        children: [
+          GlassCard(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Add supplement',
+                  style: TextStyle(
+                    color: AppColors.white,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                const SizedBox(height: 10),
+                TextField(
+                  controller: _name,
+                  style: const TextStyle(color: AppColors.white),
+                  decoration: const InputDecoration(hintText: 'Name'),
+                ),
+                const SizedBox(height: 8),
+                TextField(
+                  controller: _dosage,
+                  style: const TextStyle(color: AppColors.white),
+                  decoration:
+                      const InputDecoration(hintText: 'Dosage (optional)'),
+                ),
+                const SizedBox(height: 8),
+                TextField(
+                  controller: _schedule,
+                  style: const TextStyle(color: AppColors.white),
+                  decoration: const InputDecoration(
+                    hintText: 'Schedule (optional, e.g. AM / with meals)',
+                  ),
+                ),
+                const SizedBox(height: 10),
+                ElevatedButton(
+                  onPressed: _saving ? null : _add,
+                  child: Text(_saving ? 'Adding…' : 'Add supplement'),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 20),
+          const Text(
+            "Today's checklist",
+            style: TextStyle(
+              color: AppColors.white,
+              fontSize: 20,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+          const SizedBox(height: 8),
+          supplements.when(
+            loading: () =>
+                const LinearProgressIndicator(color: AppColors.lime),
+            error: (e, _) =>
+                Text('$e', style: const TextStyle(color: AppColors.danger)),
+            data: (items) {
+              if (items.isEmpty) {
+                return const GlassCard(
+                  child: Text(
+                    'No supplements yet — add one above to start tracking.',
+                    style: TextStyle(color: AppColors.soft),
+                  ),
+                );
+              }
+              return Column(
+                children: items.map((s) {
+                  final id = s['id'] as String;
+                  final takenToday = s['takenToday'] as bool? ?? false;
+                  final busy = _busyId == id;
+                  final subtitle = [
+                    if ((s['dosage'] as String?)?.isNotEmpty == true)
+                      '${s['dosage']}',
+                    if ((s['schedule'] as String?)?.isNotEmpty == true)
+                      '${s['schedule']}',
+                  ].join(' · ');
+                  return Padding(
+                    padding: const EdgeInsets.only(bottom: 8),
+                    child: GlassCard(
+                      padding: EdgeInsets.zero,
+                      child: ListTile(
+                        leading: Checkbox(
+                          value: takenToday,
+                          activeColor: AppColors.lime,
+                          onChanged:
+                              busy ? null : (_) => _toggle(id, takenToday),
+                        ),
+                        title: Text(
+                          '${s['name']}',
+                          style: TextStyle(
+                            color: AppColors.white,
+                            decoration: takenToday
+                                ? TextDecoration.lineThrough
+                                : null,
+                          ),
+                        ),
+                        subtitle: subtitle.isEmpty
+                            ? null
+                            : Text(
+                                subtitle,
+                                style:
+                                    const TextStyle(color: AppColors.mutedOnDark),
+                              ),
+                        trailing: IconButton(
+                          icon: const Icon(Icons.close,
+                              color: AppColors.mutedOnDark),
+                          onPressed: busy ? null : () => _remove(id),
+                        ),
+                      ),
+                    ),
+                  );
+                }).toList(),
+              );
+            },
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _FastingTab extends ConsumerStatefulWidget {
+  const _FastingTab();
+
+  @override
+  ConsumerState<_FastingTab> createState() => _FastingTabState();
+}
+
+class _FastingTabState extends ConsumerState<_FastingTab> {
+  double _targetHours = 16;
+  bool _busy = false;
+
+  Future<void> _start() async {
+    setState(() => _busy = true);
+    try {
+      await ref.read(fitnessRepositoryProvider).startFasting(_targetHours);
+      ref.invalidate(fastingCurrentProvider);
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text('$e')));
+      }
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  Future<void> _end() async {
+    setState(() => _busy = true);
+    try {
+      await ref.read(fitnessRepositoryProvider).endFasting();
+      ref.invalidate(fastingCurrentProvider);
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text('$e')));
+      }
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final current = ref.watch(fastingCurrentProvider);
+    return RefreshIndicator(
+      color: AppColors.lime,
+      onRefresh: () async {
+        ref.invalidate(fastingCurrentProvider);
+        await ref.read(fastingCurrentProvider.future);
+      },
+      child: ListView(
+        padding: const EdgeInsets.all(24),
+        children: [
+          current.when(
+            loading: () => const Center(
+              child: CircularProgressIndicator(color: AppColors.lime),
+            ),
+            error: (e, _) =>
+                Text('$e', style: const TextStyle(color: AppColors.danger)),
+            data: (data) {
+              final session = data['session'] as Map<String, dynamic>?;
+              final elapsedHours =
+                  (data['elapsedHours'] as num?)?.toDouble() ?? 0;
+              final targetHours = session == null
+                  ? _targetHours
+                  : (session['targetHours'] as num?)?.toDouble() ?? 16;
+              final ratio = targetHours > 0
+                  ? (elapsedHours / targetHours).clamp(0, 1).toDouble()
+                  : 0.0;
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  GlassCard(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          session == null
+                              ? 'No active fast'
+                              : '${elapsedHours.toStringAsFixed(1)}h / ${targetHours.toStringAsFixed(0)}h',
+                          style: const TextStyle(
+                            color: AppColors.white,
+                            fontSize: 24,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                        const SizedBox(height: 10),
+                        ClipRRect(
+                          borderRadius: BorderRadius.circular(8),
+                          child: LinearProgressIndicator(
+                            value: session == null ? 0 : ratio,
+                            minHeight: 10,
+                            backgroundColor: AppColors.card,
+                            color: AppColors.lime,
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+                        if (session == null) ...[
+                          Text(
+                            'Target: ${_targetHours.toStringAsFixed(0)}h',
+                            style: const TextStyle(color: AppColors.mutedOnDark),
+                          ),
+                          Slider(
+                            value: _targetHours,
+                            min: 12,
+                            max: 24,
+                            divisions: 12,
+                            activeColor: AppColors.lime,
+                            label: '${_targetHours.toStringAsFixed(0)}h',
+                            onChanged: (v) =>
+                                setState(() => _targetHours = v),
+                          ),
+                          ElevatedButton(
+                            onPressed: _busy ? null : _start,
+                            child: Text(_busy ? 'Starting…' : 'Start fast'),
+                          ),
+                        ] else
+                          OutlinedButton(
+                            onPressed: _busy ? null : _end,
+                            child: Text(_busy ? 'Ending…' : 'End fast'),
+                          ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  Text(
+                    '${data['disclaimer']}',
+                    style: const TextStyle(
+                      color: AppColors.mutedOnDark,
+                      fontSize: 12,
+                    ),
+                  ),
+                ],
+              );
+            },
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ShoppingListTab extends ConsumerStatefulWidget {
+  const _ShoppingListTab();
+
+  @override
+  ConsumerState<_ShoppingListTab> createState() => _ShoppingListTabState();
+}
+
+class _ShoppingListTabState extends ConsumerState<_ShoppingListTab> {
+  final _name = TextEditingController();
+  final _quantity = TextEditingController();
+  bool _saving = false;
+  String? _busyId;
+
+  @override
+  void dispose() {
+    _name.dispose();
+    _quantity.dispose();
+    super.dispose();
+  }
+
+  Future<void> _add() async {
+    if (_name.text.trim().isEmpty) return;
+    setState(() => _saving = true);
+    try {
+      await ref.read(fitnessRepositoryProvider).addShoppingListItem(
+            _name.text.trim(),
+            quantity: _quantity.text.trim(),
+          );
+      _name.clear();
+      _quantity.clear();
+      ref.invalidate(shoppingListProvider);
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text('$e')));
+      }
+    } finally {
+      if (mounted) setState(() => _saving = false);
+    }
+  }
+
+  Future<void> _toggle(String id, bool checked) async {
+    setState(() => _busyId = id);
+    try {
+      await ref
+          .read(fitnessRepositoryProvider)
+          .toggleShoppingListItem(id, checked);
+      ref.invalidate(shoppingListProvider);
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text('$e')));
+      }
+    } finally {
+      if (mounted) setState(() => _busyId = null);
+    }
+  }
+
+  Future<void> _remove(String id) async {
+    setState(() => _busyId = id);
+    try {
+      await ref.read(fitnessRepositoryProvider).removeShoppingListItem(id);
+      ref.invalidate(shoppingListProvider);
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text('$e')));
+      }
+    } finally {
+      if (mounted) setState(() => _busyId = null);
+    }
+  }
+
+  Future<void> _clearChecked() async {
+    setState(() => _busyId = 'clear');
+    try {
+      await ref.read(fitnessRepositoryProvider).clearCheckedShoppingListItems();
+      ref.invalidate(shoppingListProvider);
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text('$e')));
+      }
+    } finally {
+      if (mounted) setState(() => _busyId = null);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final items = ref.watch(shoppingListProvider);
+    return RefreshIndicator(
+      color: AppColors.lime,
+      onRefresh: () async {
+        ref.invalidate(shoppingListProvider);
+        await ref.read(shoppingListProvider.future);
+      },
+      child: ListView(
+        padding: const EdgeInsets.all(24),
+        children: [
+          GlassCard(
+            child: Row(
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      TextField(
+                        controller: _name,
+                        style: const TextStyle(color: AppColors.white),
+                        decoration:
+                            const InputDecoration(hintText: 'Item'),
+                        onSubmitted: (_) => _add(),
+                      ),
+                      const SizedBox(height: 8),
+                      TextField(
+                        controller: _quantity,
+                        style: const TextStyle(color: AppColors.white),
+                        decoration: const InputDecoration(
+                          hintText: 'Quantity (optional)',
+                        ),
+                        onSubmitted: (_) => _add(),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 8),
+                IconButton.filled(
+                  onPressed: _saving ? null : _add,
+                  style: IconButton.styleFrom(backgroundColor: AppColors.lime),
+                  icon: const Icon(Icons.add, color: AppColors.voidBlack),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 16),
+          items.when(
+            loading: () =>
+                const LinearProgressIndicator(color: AppColors.lime),
+            error: (e, _) =>
+                Text('$e', style: const TextStyle(color: AppColors.danger)),
+            data: (rows) {
+              if (rows.isEmpty) {
+                return const GlassCard(
+                  child: Text(
+                    'Your list is empty. Add items above, or save a '
+                    "recipe's ingredients from the Recipes tab.",
+                    style: TextStyle(color: AppColors.soft),
+                  ),
+                );
+              }
+              final hasChecked = rows.any((r) => r['checked'] == true);
+              return Column(
+                children: [
+                  if (hasChecked)
+                    Align(
+                      alignment: Alignment.centerRight,
+                      child: TextButton(
+                        onPressed:
+                            _busyId == 'clear' ? null : _clearChecked,
+                        child: const Text('Clear checked'),
+                      ),
+                    ),
+                  ...rows.map((item) {
+                    final id = item['id'] as String;
+                    final checked = item['checked'] as bool? ?? false;
+                    final busy = _busyId == id;
+                    final quantity = item['quantity'] as String?;
+                    return Padding(
+                      padding: const EdgeInsets.only(bottom: 6),
+                      child: GlassCard(
+                        padding: EdgeInsets.zero,
+                        child: ListTile(
+                          leading: Checkbox(
+                            value: checked,
+                            activeColor: AppColors.lime,
+                            onChanged:
+                                busy ? null : (_) => _toggle(id, !checked),
+                          ),
+                          title: Text(
+                            '${item['name']}',
+                            style: TextStyle(
+                              color: AppColors.white,
+                              decoration: checked
+                                  ? TextDecoration.lineThrough
+                                  : null,
+                            ),
+                          ),
+                          subtitle: quantity == null || quantity.isEmpty
+                              ? null
+                              : Text(
+                                  quantity,
+                                  style:
+                                      const TextStyle(color: AppColors.mutedOnDark),
+                                ),
+                          trailing: IconButton(
+                            icon: const Icon(Icons.close,
+                                color: AppColors.mutedOnDark),
+                            onPressed: busy ? null : () => _remove(id),
+                          ),
+                        ),
+                      ),
+                    );
+                  }),
+                ],
+              );
+            },
+          ),
+        ],
+      ),
     );
   }
 }

@@ -162,7 +162,7 @@ class _CoachHubScreenState extends ConsumerState<CoachHubScreen> {
               const SizedBox(height: 4),
               const Text(
                 'Message your coach, book consults, and pay securely.',
-                style: TextStyle(color: AppColors.muted),
+                style: TextStyle(color: AppColors.mutedOnDark),
               ),
               const SizedBox(height: 16),
               if (_loading)
@@ -290,7 +290,7 @@ class _CoachHubScreenState extends ConsumerState<CoachHubScreen> {
                   ),
                   subtitle: Text(
                     '${c['status']} · ${c['scheduledAt']} · ₹${c['amountInr']}',
-                    style: const TextStyle(color: AppColors.muted),
+                    style: const TextStyle(color: AppColors.mutedOnDark),
                   ),
                   trailing: Row(
                     mainAxisSize: MainAxisSize.min,
@@ -344,7 +344,7 @@ class _CoachHubScreenState extends ConsumerState<CoachHubScreen> {
                       ),
                       subtitle: Text(
                         '${n['body']}',
-                        style: const TextStyle(color: AppColors.muted),
+                        style: const TextStyle(color: AppColors.mutedOnDark),
                       ),
                     ),
                   ),

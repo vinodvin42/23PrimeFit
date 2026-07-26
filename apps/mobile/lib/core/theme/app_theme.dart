@@ -8,6 +8,12 @@ class AppColors {
   static const surface = Color(0xFFFFFFFF);
   static const ink = Color(0xFF111A21);
   static const muted = Color(0xFF7D8784);
+  /// AA-compliant (5.4:1) secondary-text color for light surfaces (canvas/surface).
+  /// [muted] itself only reaches 3.3:1 against canvas — too low for body text (WCAG AA needs 4.5:1).
+  static const mutedInk = Color(0xFF5D6563);
+  /// AA-compliant (5.1:1 on card, 6.5:1 on voidBlack) secondary-text color for dark hub surfaces.
+  /// [muted] only reaches 3.9:1 against card — use this instead for new dark-surface text.
+  static const mutedOnDark = Color(0xFF8F9B97);
   static const line = Color(0xFFE2E8E4);
   static const lime = Color(0xFF20A875);
   static const limeDeep = Color(0xFF13865E);
@@ -70,7 +76,7 @@ class AppTheme {
           fontWeight: FontWeight.w700,
         ),
         bodyLarge: text.bodyLarge?.copyWith(color: AppColors.ink),
-        bodyMedium: text.bodyMedium?.copyWith(color: AppColors.muted),
+        bodyMedium: text.bodyMedium?.copyWith(color: AppColors.mutedInk),
       ),
       appBarTheme: AppBarTheme(
         backgroundColor: Colors.transparent,
@@ -86,7 +92,8 @@ class AppTheme {
       elevatedButtonTheme: ElevatedButtonThemeData(
         style: ElevatedButton.styleFrom(
           backgroundColor: AppColors.lime,
-          foregroundColor: AppColors.white,
+          // voidBlack on lime is 6.1:1 (AA); white on lime was only 3.0:1.
+          foregroundColor: AppColors.voidBlack,
           minimumSize: const Size(88, 52),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(28),
@@ -97,7 +104,7 @@ class AppTheme {
       filledButtonTheme: FilledButtonThemeData(
         style: FilledButton.styleFrom(
           backgroundColor: AppColors.lime,
-          foregroundColor: AppColors.white,
+          foregroundColor: AppColors.voidBlack,
           minimumSize: const Size(88, 52),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(28),
@@ -188,7 +195,8 @@ class AppTheme {
       elevatedButtonTheme: ElevatedButtonThemeData(
         style: ElevatedButton.styleFrom(
           backgroundColor: AppColors.lime,
-          foregroundColor: AppColors.white,
+          // voidBlack on lime is 6.1:1 (AA); white on lime was only 3.0:1.
+          foregroundColor: AppColors.voidBlack,
           minimumSize: const Size.fromHeight(52),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(16),
@@ -199,7 +207,7 @@ class AppTheme {
       filledButtonTheme: FilledButtonThemeData(
         style: FilledButton.styleFrom(
           backgroundColor: AppColors.lime,
-          foregroundColor: AppColors.white,
+          foregroundColor: AppColors.voidBlack,
           minimumSize: const Size.fromHeight(52),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(16),
